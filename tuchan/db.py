@@ -46,6 +46,12 @@ CREATE TABLE IF NOT EXISTS tu_si (
     so_tran_thang  INTEGER NOT NULL DEFAULT 0,
     so_tran_thua   INTEGER NOT NULL DEFAULT 0,
     da_chet        INTEGER NOT NULL DEFAULT 0,
+    dan_pham       INTEGER NOT NULL DEFAULT 0,
+    tho_nguyen_them INTEGER NOT NULL DEFAULT 0,
+    buff_ho_kiep   REAL NOT NULL DEFAULT 0,
+    buff_pha_chuong REAL NOT NULL DEFAULT 0,
+    an_tuc_toi     INTEGER NOT NULL DEFAULT 0,
+    so_kiep_da_qua INTEGER NOT NULL DEFAULT 0,
     ghi_chu        TEXT NOT NULL DEFAULT '{}'
 );
 
@@ -125,6 +131,12 @@ class TuSi:
     so_tran_thang: int = 0
     so_tran_thua: int = 0
     da_chet: int = 0
+    dan_pham: int = 0            # phẩm chất kim đan (0 = chưa kết đan)
+    tho_nguyen_them: int = 0     # số năm thọ mua thêm được bằng đan dược
+    buff_ho_kiep: float = 0.0    # hộ thể còn hiệu lực cho lần độ kiếp tới
+    buff_pha_chuong: float = 0.0 # cơ hội cộng thêm cho lần xung quan tới
+    an_tuc_toi: int = 0          # khí tức bị che tới thời khắc này
+    so_kiep_da_qua: int = 0      # đã đi qua bao nhiêu lần kiếp nạn lớn
     ghi_chu: str = "{}"
 
     # ── tiện ích ──
@@ -135,6 +147,10 @@ class TuSi:
     @property
     def con_bao_lau_duong_thuong(self) -> int:
         return max(0, self.thuong_toi - int(time.time()))
+
+    @property
+    def dang_an_tuc(self) -> bool:
+        return self.an_tuc_toi > int(time.time())
 
     def ghi(self) -> dict[str, Any]:
         try:
@@ -162,7 +178,26 @@ class Kho:
             self._conn = await aiosqlite.connect(self.duong_dan)
             self._conn.row_factory = aiosqlite.Row
             await self._conn.executescript(SCHEMA)
+            await self._di_tru()
             await self._conn.commit()
+
+    async def _di_tru(self) -> None:
+        """Thêm những cột sinh sau đẻ muộn vào sổ cũ, không làm mất dữ liệu."""
+        assert self._conn is not None
+        cur = await self._conn.execute("PRAGMA table_info(tu_si)")
+        co = {r[1] for r in await cur.fetchall()}
+        await cur.close()
+        kieu = {
+            "dan_pham": "INTEGER NOT NULL DEFAULT 0",
+            "tho_nguyen_them": "INTEGER NOT NULL DEFAULT 0",
+            "buff_ho_kiep": "REAL NOT NULL DEFAULT 0",
+            "buff_pha_chuong": "REAL NOT NULL DEFAULT 0",
+            "an_tuc_toi": "INTEGER NOT NULL DEFAULT 0",
+            "so_kiep_da_qua": "INTEGER NOT NULL DEFAULT 0",
+        }
+        for cot, dinh_nghia in kieu.items():
+            if cot not in co:
+                await self._conn.execute(f"ALTER TABLE tu_si ADD COLUMN {cot} {dinh_nghia}")
 
     async def dong(self) -> None:
         if self._conn is not None:

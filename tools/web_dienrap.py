@@ -92,6 +92,9 @@ const NUT = [
  ["khampha","Khám phá"],["timduoc","Hái thuốc"],["duykysi","Tỉ thí",1],["monphai","Tông môn"],
  ["nhiemvu","Chấp sự đường"],["viecdi","Lên đường"],["sotay","Sổ tay"],["luyendan","Mở lò"],
  ["cuahang","Xuống chợ"],["tuido","Túi càn khôn"],["thientuong","Xem trời"],["nhatky","Thủ ký"],
+ ["uongdan","Uống đan"],["deo","Đeo pháp bảo"],["mua","Mua hàng"],
+ ["canhgioi","Bia mười bậc"],["kiepnan","Chín cửa ải"],["binhkhi","Binh Khí Phổ"],
+ ["linhdan","Đan Phổ"],["kimdan","Chín phẩm kim đan"],
  ["sukien","Gọi thiên biến"],["lam_lai","Làm lại từ đầu",1]
 ];
 const thanh=document.getElementById('thanh'), canh=document.getElementById('canh'), dang=document.getElementById('dang');
@@ -278,6 +281,38 @@ async def xu_ly(request: web.Request) -> web.Response:
                 kq.them(f"**{nhan}:** {s}")
         kq.them(mo_ta_phap_bao(ts.phap_bao))
         kq.them(mo_ta_linh_thach(ts.linh_thach))
+    elif lenh in ("canhgioi", "kiepnan", "binhkhi", "linhdan", "kimdan"):
+        from tuchan.he import thutich
+        kq = {"canhgioi": thutich.bia_muoi_bac, "kiepnan": thutich.chin_cua_ai,
+              "binhkhi": thutich.binh_khi_pho, "linhdan": thutich.dan_pho,
+              "kimdan": thutich.kim_dan_pho}[lenh]()
+    elif lenh in ("uongdan", "deo", "mua"):
+        from tuchan.data import vatpham as dl_vp
+        tui = await KHO.tui(ts.user_id)
+        if lenh == "mua":
+            nguon = list(giaothuong.hang_ban_cho(ts))
+            nhan, viec = "Mua thứ gì?", "Trả linh thạch"
+        else:
+            loai = "dan_duoc" if lenh == "uongdan" else "phap_bao"
+            nguon = [m for m in tui if (dl_vp.lay(m) and dl_vp.lay(m).loai == loai)]
+            nhan = "Nuốt viên nào?" if lenh == "uongdan" else "Cầm món nào?"
+            viec = "Uống" if lenh == "uongdan" else "Đeo lên người"
+        if not tham:
+            if not nguon:
+                kq = KetQua(tieu_de="Không có gì",
+                            van=["Ngươi lục túi một lượt, rồi thôi. Trong đó không có thứ ngươi cần."])
+            else:
+                opts = "".join(f'<option value="{m}">{dl_vp.ten(m)}</option>' for m in sorted(nguon))
+                chon = (f'<div class="ghi">{nhan}</div><div class="hang">'
+                        f'<select id="vp_{lenh}">{opts}</select>'
+                        f'<button onclick="chon(\'{lenh}\',\'vp_{lenh}\')">{viec}</button></div>')
+                return goi_ra(KetQua(tieu_de=nhan, van=[""]), chon)
+        elif lenh == "uongdan":
+            kq = await luyenche.uong_dan(KHO, ts, tham, RNG)
+        elif lenh == "deo":
+            kq = await luyenche.deo_phap_bao(KHO, ts, tham)
+        else:
+            kq = await giaothuong.mua(KHO, ts, dl_vp.ten(tham), 1, hs)
     elif lenh == "thientuong":
         kq = await thienbien.xem_thien_bien(KHO, 1)
     elif lenh == "sukien":

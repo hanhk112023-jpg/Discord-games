@@ -6,12 +6,14 @@ import random
 import time
 
 from .. import config
-from ..canhgioi import (BANG_CANH_GIOI, TOI_DA, canh_gioi, la_dinh_canh,
-                        ten_canh_gioi, tu_vi_can_thiet)
+from ..canhgioi import (BANG_CANH_GIOI, TOI_DA, canh_gioi, he_so_dan_pham,
+                        khoa_tieu_canh, la_dinh_canh, mo_ta_tang, ten_canh_gioi,
+                        tu_vi_can_thiet)
 from ..data import monphai as dl_monphai
 from ..data import vatpham
 from ..vanphong import KET_TU_LUYEN, MO_DAU_TU_LUYEN, khac_gio, mo_ta_dao_hanh
 from .ketqua import KetQua
+from . import kiepnan
 from .thienco import thanh_bai, van_khi
 
 # ───────────────────────── luyện tập thường ─────────────────────────
@@ -251,6 +253,10 @@ def _ti_le_dot_pha(ts, len_canh_gioi: bool, ho_tro_dan: float, hs: dict) -> floa
     goc += (ts.dao_tam - 60) / 420.0
     goc += min(0.12, ts.that_bai_lien * 0.045)  # thất bại tích thành cảm ngộ
     goc += ho_tro_dan
+    goc += ts.buff_pha_chuong
+    if ts.canh_gioi >= 2 and ts.dan_pham:
+        # viên kim đan năm xưa còn nói chuyện với ngươi ở mọi cửa ải về sau
+        goc += (ts.dan_pham - 4) * 0.013
     goc *= 0.9 + 0.2 * (ts.than_the / 100.0)
     goc *= hs.get("dao_tam", 1.0)
     mp = dl_monphai.lay(ts.mon_phai) if ts.mon_phai else None
@@ -312,12 +318,18 @@ async def dot_pha(kho, ts, rng: random.Random | None = None, he_so_the_gioi: dic
 
     ti_le = _ti_le_dot_pha(ts, len_canh_gioi, ho_tro, hs)
     ts.so_lan_dot_pha += 1
+    dung_pha_chuong = ts.buff_pha_chuong > 0
 
     kq = KetQua(tieu_de="Xung quan", mau=config.MAU_KIM)
     kq.them(
         "Ngươi chọn một nơi không ai tìm ra, bày trận, cắm bốn ngọn nến, "
         "và ngồi xuống với ý nghĩ rất rõ ràng rằng mình có thể không đứng dậy được nữa."
     )
+    if dung_pha_chuong:
+        kq.them(
+            "Chỗ bế tắc trong kinh mạch ngươi đã bị đục thủng từ trước bằng dược lực — "
+            "con đường hôm nay ít nhất cũng đỡ gập ghềnh hơn mọi khi."
+        )
     if ten_dan:
         kq.them(f"Ngươi nuốt {ten_dan}. Một luồng nóng chạy thẳng xuống đan điền, và mọi thứ trong người bắt đầu sôi.")
     if len_canh_gioi:
@@ -327,6 +339,34 @@ async def dot_pha(kho, ts, rng: random.Random | None = None, he_so_the_gioi: dic
             "một cái ngưỡng mà trong mười người bước tới, chín người quay đầu, "
             "và trong chín người quay đầu ấy có mấy kẻ đã kịp gãy lưng."
         )
+
+    # ── kiếp nạn: cửa ải lớn nào cũng có người gác cửa ──
+    kk = None
+    if len_canh_gioi:
+        kk = await kiepnan.vuot_kiep(kho, ts, rng, hs, ts.canh_gioi + 1)
+    elif ts.canh_gioi == 8:  # Độ Kiếp: mỗi trọng một lần lôi kiếp
+        kk = await kiepnan.do_loi_kiep_tang(kho, ts, rng, hs, ts.tang)
+    if kk is not None:
+        for dong in kk.van:
+            kq.them(dong)
+        ti_le = min(0.96, ti_le + kk.cong_them)
+        kiepnan.ap_dung(ts, kk)
+        ts.buff_pha_chuong = 0.0
+        if not kk.qua:
+            ts.that_bai_lien += 1
+            ts.tu_vi = int(ts.tu_vi * 0.45)
+            kq.tieu_de = "Kiếp nạn chưa qua"
+            kq.mau = config.MAU_HUYET
+            kq.thanh_cong = False
+            kq.them(
+                "Cửa ải này không mở cho ngươi hôm nay. Ngươi lết về, nằm xuống, "
+                "và trong lúc thiêm thiếp còn nghe tiếng gió ngoài kia — nghe như tiếng ai đó đang chờ."
+            )
+            if ts.da_chet:
+                kq.du_lieu["tu_vong"] = True
+            await kho.chep(ts.user_id, "kiep_nan", f"Kiếp nạn thất bại trước cửa {canh_gioi(ts.canh_gioi + 1).ten}.")
+            await kho.luu(ts)
+            return kq
 
     if thanh_bai(rng, ti_le):
         ts.that_bai_lien = 0
@@ -358,6 +398,7 @@ async def dot_pha(kho, ts, rng: random.Random | None = None, he_so_the_gioi: dic
                 "Chân khí đâm thủng chỗ bế tắc. Một tiếng 'bựt' rất khẽ vang lên trong người ngươi — "
                 "khẽ tới mức chỉ mình ngươi nghe thấy, nhưng nó đủ lớn để đổi cả một quãng đời."
             )
+            kq.them(mo_ta_tang(ts.canh_gioi, ts.tang))
             kq.them(
                 f"Ngươi đã đứng vững ở **{ten_canh_gioi(ts.canh_gioi, ts.tang)}**. "
                 "Không có tiếng vỗ tay nào cả. Chỉ có ngọn nến đã cháy hết, và một cơn đói cồn cào."
@@ -403,5 +444,6 @@ async def dot_pha(kho, ts, rng: random.Random | None = None, he_so_the_gioi: dic
         )
         await kho.chep(ts.user_id, "dot_pha", "Xung quan thất bại.")
 
+    ts.buff_pha_chuong = 0.0
     await kho.luu(ts)
     return kq

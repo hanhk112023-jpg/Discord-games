@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+import time
 
 from .. import config
 from ..data import congthuc as dl_congthuc
@@ -250,8 +251,35 @@ async def uong_dan(kho, ts, ma: str, rng: random.Random | None = None) -> KetQua
         ts.sat_nghiep += int(hq["sat_nghiep"])
         kq.them("Có thứ gì đó trong đó không thuộc về ngươi, và nó vừa đi vào máu ngươi.")
     if "can_cot" in hq:
-        ts.can_cot += 0.05
+        ts.can_cot = round(ts.can_cot + 0.05 * float(hq["can_cot"]), 3)
         kq.them("Xương cốt kêu răng rắc suốt một canh giờ. Khi ngừng, ngươi thấy mình... chắc hơn.")
+    if "tho_nguyen" in hq:
+        ts.tho_nguyen_them += int(hq["tho_nguyen"])
+        kq.them(
+            "Không có gì xảy ra cả. Không nóng, không lạnh, không cảm ngộ. "
+            f"Chỉ là từ hôm nay, cái hẹn cuối cùng của ngươi với trời đất lùi lại thêm {int(hq['tho_nguyen'])} năm — "
+            "và ở bậc của ngươi, đó là món quà đắt nhất mà tiền bạc mua được."
+        )
+    if "ho_kiep" in hq:
+        ts.buff_ho_kiep = max(ts.buff_ho_kiep, float(hq["ho_kiep"]))
+        kq.them(
+            "Dược lực không tan ra mà đọng lại thành một lớp rất mỏng dưới da, chờ sẵn. "
+            "Nó sẽ chỉ thức dậy khi có thứ gì đó thật sự muốn giết ngươi — lần độ kiếp tới, "
+            "ngươi sẽ chịu đòn khá hơn hôm qua một chút."
+        )
+    if "dot_pha_tang" in hq:
+        ts.buff_pha_chuong = max(ts.buff_pha_chuong, float(hq["dot_pha_tang"]))
+        kq.them(
+            "Trong kinh mạch có tiếng nứt rất khẽ, như băng mỏng vỡ dưới chân. "
+            "Chỗ bế tắc lâu nay đã bị đục thủng một lỗ nhỏ; lần xung quan tới, hãy tận dụng nó trước khi nó liền lại."
+        )
+    if "an_tuc" in hq:
+        ts.an_tuc_toi = int(time.time()) + int(hq["an_tuc"])
+        kq.them(
+            "Khí tức trên người ngươi loãng ra rồi tắt hẳn, như một ngọn đèn bị úp bát. "
+            "Trong quãng thời gian tới, ngươi đi giữa đường lớn cũng chẳng khác gì một kẻ đốn củi — "
+            "và trong cái thế giới này, được xem là kẻ đốn củi nhiều khi là may mắn lớn."
+        )
     if "dot_pha" in hq:
         kq.them(
             "*Loại đan này chỉ phát huy tác dụng khi dùng ngay trong lúc xung quan. "

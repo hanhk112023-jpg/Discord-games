@@ -32,6 +32,7 @@ def ben_tu_nguoi_choi(ts) -> chiendau.BenThamChien:
         than_the=ts.than_the,
         la_nguoi_choi=True,
         cong_phap=(mp.cong_phap if mp else ""),
+        dan_pham=ts.dan_pham,
     )
 
 
@@ -46,6 +47,7 @@ def ben_tu_dich(d) -> chiendau.BenThamChien:
         than_the=100,
         thu_doan=d.thu_doan,
         hung_hang=d.hung_hang,
+        dan_pham=min(9, max(0, d.canh_gioi + 2)) if d.canh_gioi >= 2 else 0,
     )
 
 

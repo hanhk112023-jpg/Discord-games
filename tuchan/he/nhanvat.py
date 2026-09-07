@@ -6,7 +6,8 @@ import random
 import time
 
 from .. import config
-from ..canhgioi import canh_gioi, ten_canh_gioi, xung_ho
+from ..canhgioi import (canh_gioi, mo_ta_dan_pham, mo_ta_tang, ten_canh_gioi,
+                        ten_dan_pham, xung_ho)
 from ..data import congthuc as dl_congthuc
 from ..data import monphai as dl_monphai
 from ..data import vatpham
@@ -93,7 +94,22 @@ async def xem_nhan_vat(kho, ts, hs: dict | None = None) -> KetQua:
     if xt:
         kq.them(f"Xuất thân {xt.ten.lower()}. {xt.linh_can}.")
     kq.them(cg.than_the.capitalize() + ". " + cg.cam_ngo.capitalize() + ".")
+    kq.them(mo_ta_tang(ts.canh_gioi, ts.tang))
     kq.them(mo_ta_dao_hanh(ts.canh_gioi, ts.tang, ts.tu_vi))
+    if ts.dan_pham:
+        kq.them(
+            f"Trong đan điền ngươi có một viên kim đan **{ten_dan_pham(ts.dan_pham)}**. "
+            + mo_ta_dan_pham(ts.dan_pham)
+        )
+    if ts.dang_an_tuc:
+        kq.them(
+            "Khí tức trên người ngươi hiện đang bị dược lực che kín. Người qua đường nhìn ngươi "
+            "cũng chỉ thấy một kẻ áo vải bình thường — và đó đúng là điều ngươi muốn."
+        )
+    if ts.buff_ho_kiep:
+        kq.them(
+            "Dưới da ngươi còn đọng một lớp dược lực hộ thể, im lìm, chờ tới lần trời giáng tai xuống."
+        )
     kq.them(mo_ta_than_the(ts.than_the, ts.dang_bi_thuong, ts.con_bao_lau_duong_thuong))
     kq.them(mo_ta_dao_tam(ts.dao_tam))
     sat = mo_ta_sat_nghiep(ts.sat_nghiep)

@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from .. import config, giaodien
 from ..bot import TuChanBot
-from ..canhgioi import BANG_CANH_GIOI
+from ..he import thutich
 from ..he.ketqua import KetQua
 
 LOI_MO = (
@@ -67,7 +68,9 @@ class CogChiDan(commands.Cog, name="Chỉ dẫn"):
         )
         kq.them(
             "*“Và cuối cùng — nhìn trời.”*\n"
-            f"`{p}thientuong` — xem thiên tượng. `{p}canhgioi` — nghe về mười bậc trên con đường này.\n\n"
+            f"`{p}thientuong` — xem thiên tượng. `{p}canhgioi` — nghe về mười bậc trên con đường này.\n"
+            f"`{p}kiepnan` — chín cửa ải chờ sẵn. `{p}kimdan` — vì sao người ta sợ kim đan hạ phẩm.\n"
+            f"`{p}binhkhi` — Binh Khí Phổ. `{p}linhdan` — Đan Phổ.\n\n"
             "Mọi lệnh đều dùng được cả hai kiểu: gõ `/` cho gọn, hoặc gõ "
             f"`{p}` cho giống người xưa."
         )
@@ -78,20 +81,30 @@ class CogChiDan(commands.Cog, name="Chỉ dẫn"):
         await giaodien.gui(ctx, kq)
 
     @commands.hybrid_command(name="canhgioi", aliases=["bacthang"],
-                             description="Mười bậc trên con đường tu hành.")
+                             description="Mười bậc lớn, sáu mươi mốt bậc nhỏ trên con đường tu hành.")
     async def canhgioi(self, ctx: commands.Context):
-        kq = KetQua(tieu_de="Mười bậc")
-        kq.them(
-            "Trong Tàng Kinh Các có một tấm bia đá, khắc mười cái tên. "
-            "Chữ ở trên cùng đã mòn gần hết — không phải vì thời gian, mà vì quá nhiều bàn tay từng sờ lên đó."
-        )
-        for i, cg in enumerate(BANG_CANH_GIOI):
-            kq.them(f"**{i + 1}. {cg.ten}** — {cg.than_the.capitalize()}. {cg.the_gioi.capitalize()}.")
-        kq.them(
-            "Dưới cùng tấm bia, có kẻ nào đó khắc thêm một dòng bằng dao găm, chữ nguệch ngoạc: "
-            "*“Ta đã đi tới bậc thứ tư. Không đáng.”*"
-        )
-        await giaodien.gui(ctx, kq)
+        await giaodien.gui(ctx, thutich.bia_muoi_bac())
+
+    @commands.hybrid_command(name="kiepnan", aliases=["cuaai", "khaonghiem"],
+                             description="Chín cửa ải trời đặt sẵn trước mỗi bậc lớn.")
+    async def kiepnan(self, ctx: commands.Context):
+        await giaodien.gui(ctx, thutich.chin_cua_ai())
+
+    @commands.hybrid_command(name="binhkhi", aliases=["phapbao", "khipho"],
+                             description="Binh Khí Phổ — những món khí giới còn được nhắc tên.")
+    @app_commands.describe(pham="Chỉ xem khí giới từ phẩm này trở lên (1–9)")
+    async def binhkhi(self, ctx: commands.Context, pham: int | None = None):
+        await giaodien.gui(ctx, thutich.binh_khi_pho(pham or 1))
+
+    @commands.hybrid_command(name="linhdan", aliases=["danpho", "dancac"],
+                             description="Đan Phổ — những viên đan mà đan sư trong thiên hạ còn luyện.")
+    async def linhdan(self, ctx: commands.Context):
+        await giaodien.gui(ctx, thutich.dan_pho())
+
+    @commands.hybrid_command(name="kimdan", aliases=["danpham"],
+                             description="Chín phẩm kim đan, và vì sao người ta sợ phẩm thấp.")
+    async def kimdan(self, ctx: commands.Context):
+        await giaodien.gui(ctx, thutich.kim_dan_pho())
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: Exception):

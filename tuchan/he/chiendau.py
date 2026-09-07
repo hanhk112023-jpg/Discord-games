@@ -9,7 +9,8 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass, field
 
-from ..canhgioi import canh_gioi, suc_manh_nen, ten_canh_gioi
+from ..canhgioi import (canh_gioi, he_so_dan_pham, suc_manh_nen,
+                        ten_canh_gioi)
 from ..data import vatpham
 
 
@@ -28,11 +29,17 @@ class BenThamChien:
     la_nguoi_choi: bool = False
     hung_hang: float = 1.0
     cong_phap: str = ""
+    dan_pham: int = 0  # phẩm chất kim đan, nếu đã kết đan
 
     @property
     def ten_phap_bao(self) -> str:
         vp = vatpham.lay(self.phap_bao) if self.phap_bao else None
         return vp.ten if vp else ""
+
+    @property
+    def loai_vu_khi(self) -> str:
+        vp = vatpham.lay(self.phap_bao) if self.phap_bao else None
+        return vp.loai_vu_khi if vp else ""
 
     @property
     def uy_luc_phap_bao(self) -> float:
@@ -46,6 +53,8 @@ class BenThamChien:
         s *= 0.75 + 0.25 * self.can_cot
         s *= 0.55 + 0.45 * max(0, min(100, self.than_the)) / 100.0
         s *= 0.88 + 0.24 * max(0, min(100, self.dao_tam)) / 100.0
+        if self.canh_gioi >= 2 and self.dan_pham:
+            s *= he_so_dan_pham(self.dan_pham)
         return max(0.01, s)
 
 
@@ -128,6 +137,104 @@ CHET_HUT = (
 )
 
 
+# ───────────── lối đánh riêng của từng loại binh khí ─────────────
+# Mỗi món khí giới đánh một kiểu; người xem trận nhìn cách ra đòn là biết ngươi cầm gì.
+
+CHIEU_THEO_VU_KHI: dict[str, tuple[str, ...]] = {
+    "kiem": (
+        "{a} rút kiếm. Không có hoa mỹ nào cả — một đường thẳng, đi từ dưới lên, "
+        "nhắm đúng chỗ {b} vừa đưa tay lên đỡ.",
+        "{vk_a} điểm ba cái liên tiếp vào cùng một điểm trên hộ thể của {b}. "
+        "Điểm thứ ba thì lớp linh quang ấy vỡ ra như men sứ.",
+        "{a} không đâm, không chém. {a} **đặt** mũi kiếm vào giữa hai chiêu của {b} — "
+        "và cả pho chiêu thức của {b} tự nghẽn lại ở đó.",
+    ),
+    "dao": (
+        "{vk_a} bổ xuống bằng cả trọng lượng thân người. {b} đỡ ngang, và hai gối {b} lún xuống đất nửa tấc.",
+        "{a} chém một nhát rộng, cố ý để hở sườn. {b} lao vào chỗ hở — đúng như {a} muốn — "
+        "và nhát đao thứ hai đã chờ sẵn ở đó.",
+        "Đao đi đường vòng cung, sát mặt đất, hất cả một mảng bụi đá tạt vào mắt {b} trước khi lưỡi đao tới.",
+    ),
+    "thuong": (
+        "{vk_a} đâm thẳng, rút về, đâm thẳng. Cùng một đường, cùng một điểm, mỗi lần một nhanh hơn. "
+        "{b} đỡ được hai lần đầu.",
+        "{a} xoay thương, cán thương quét ngang chân {b}. {b} nhảy lên, và mũi thương đã đợi ở trên.",
+        "Thương dài hơn đao kiếm một trượng, và cái một trượng ấy là toàn bộ vấn đề của {b} trong trận này.",
+    ),
+    "phi_kiem": (
+        "{a} búng ngón tay. {vk_a} vụt đi, xuyên qua chỗ {b} vừa đứng, vòng lại từ sau lưng.",
+        "Ba luồng kiếm quang chia ba hướng, khoá kín đường lui. {b} chỉ còn cách tiến lên — "
+        "mà tiến lên là điều {a} đang chờ.",
+        "{vk_a} bay lượn quanh {b} như một con ong dữ. {b} chém trúng nó một cái, và cả cánh tay {b} tê dại "
+        "vì phản chấn của thần thức {a} truyền qua.",
+    ),
+    "cung": (
+        "{a} kéo dây cung. Không nghe tiếng bật, chỉ thấy vai {b} nở ra một bông hoa đỏ.",
+        "Mũi tên thứ nhất bị {b} chém rơi. Mũi thứ hai đi theo đúng vệt mũi thứ nhất, và {b} không kịp chém lần hai.",
+        "{a} lùi, vừa lùi vừa bắn. Trong trận này, khoảng cách chính là binh khí thật sự của {a}.",
+    ),
+    "ti": (
+        "Không ai thấy {vk_a} đâu cả. Chỉ thấy trên má {b} bỗng hiện một đường đỏ mảnh, rồi máu mới chảy ra.",
+        "{a} khẽ giật cổ tay. Cành cây sau lưng {b} đứt lìa, rơi xuống — và {b} chợt hiểu mình đang đứng giữa một cái lồng.",
+        "Sợi tơ siết lấy cổ tay {b}. {b} giằng ra, đổi lấy một vệt cắt sâu tới xương.",
+    ),
+    "chuy": (
+        "{vk_a} giáng xuống. {b} tránh, và chỗ đất ấy lún thành một cái hố nông, đá vụn bắn lên tới ngang ngực.",
+        "Không có chiêu thức gì cả. {a} vung, {b} đỡ, và xương cánh tay {b} kêu một tiếng rất khó chịu.",
+    ),
+    "phu": (
+        "Phù giấy bay ra, tự cháy giữa không trung, và ngọn lửa ấy đổi hình thành một cánh tay chộp lấy {b}.",
+        "{a} dán một đạo phù lên chính lòng bàn tay mình rồi đẩy tới. Không khí trước mặt {b} đặc lại như hồ.",
+    ),
+    "giap": (
+        "{b} đánh trúng {a} một đòn thật. Đòn ấy trượt đi trên {vk_a} như nước trượt trên lá sen.",
+        "{a} không thèm né. {a} bước xuyên qua chiêu thức của {b}, để đòn đánh nện thẳng vào người mình, "
+        "rồi túm lấy cổ áo {b}.",
+    ),
+    "chuong": (
+        "{vk_a} rung một tiếng. Chỉ một tiếng — nhưng {b} loạng choạng, tai ù đi, và trong đầu {b} có gì đó vừa nứt.",
+        "Tiếng chuông thứ hai, thứ ba nối nhau. {b} vận công bịt tai, nhưng âm ba không đi qua tai, "
+        "nó đi thẳng vào thần hồn.",
+    ),
+    "an": (
+        "{a} đưa {vk_a} lên rồi đóng xuống không trung. Cả một vùng đất trước mặt {b} sụt xuống nửa thước.",
+        "Ấn quang đè xuống vai {b}. {b} gồng lên chống đỡ, hai chân lún dần vào nền đá.",
+    ),
+    "phuong": (
+        "{a} phất {vk_a}. Từ trong đó tràn ra sương đen, và trong sương có tiếng người khóc — "
+        "không phải một người, mà rất nhiều.",
+        "Bóng đen quấn lấy chân {b}, kéo xuống. {b} chém đứt chúng, nhưng chỗ bị chạm vào thì lạnh buốt tới tận xương.",
+    ),
+    "but": (
+        "{a} viết một chữ giữa không trung. Chữ ấy sáng lên rồi ập xuống, và {b} bỗng thấy thân thể mình nặng gấp mười.",
+        "Ngòi bút đi trên hư không như đi trên giấy. Nét cuối vừa dứt, gió quanh {b} ngừng hẳn — "
+        "cả không khí cũng không chịu vào phổi {b} nữa.",
+    ),
+    "quat": (
+        "{vk_a} xoè ra. Năm gương mặt trên nan quạt cùng mở miệng, và {b} nghe thấy chính giọng mình đang cầu xin.",
+        "Một cái phất tay. Gió âm quét qua, và những chỗ nó chạm tới thì cỏ hoá tro, còn máu trên mặt {b} đông cứng lại.",
+    ),
+    "dinh": (
+        "{vk_a} phóng to giữa không trung, úp xuống. {b} lăn ra khỏi bóng của nó vào đúng khoảnh khắc cuối.",
+        "Đốm lửa xanh trong lòng đỉnh liếm ra một cái. Nó không cháy da thịt — nó cháy thẳng vào chân khí của {b}.",
+    ),
+    "kinh": (
+        "Mặt gương chớp một cái. Chiêu thức của {b} bị hắt ngược trở lại, và {b} phải tự đỡ đòn của chính mình.",
+        "{a} nghiêng {vk_a} đi một góc rất nhỏ. Chỉ thế thôi, mà hướng của cả trận đấu đổi chiều.",
+    ),
+    "dai": (
+        "Phiến đá đen hạ xuống một tấc. Chỉ một tấc, mà {b} quỳ sụp một gối — không phải vì bị đánh, "
+        "mà vì có thứ gì đó bảo {b} phải quỳ.",
+        "{a} đứng yên. Trảm đài xoay chậm trên đầu {a}, và bóng của nó phủ lên {b} như một bản án đã tuyên.",
+    ),
+}
+
+TAY_KHONG = (
+    "{a} không dùng binh khí. {a} chỉ bước vào, cùi chỏ đi trước, và tiếng va chạm nghe như đá đập vào đá.",
+    "Nắm tay {a} và chưởng phong của {b} chạm nhau. {b} là kẻ rụt tay về trước.",
+)
+
+
 def _vk(b: BenThamChien) -> str:
     ten = b.ten_phap_bao
     if ten:
@@ -172,7 +279,13 @@ def giao_dau(
         elif do_lech < 0.16:
             cau = rng.choice(AP_DAO_NHE)
         else:
-            if ke_tren.ten_phap_bao and rng.random() < 0.45:
+            rieng = CHIEU_THEO_VU_KHI.get(ke_tren.loai_vu_khi, ())
+            gieo = rng.random()
+            if rieng and gieo < 0.55:
+                cau = rng.choice(rieng)
+            elif not ke_tren.ten_phap_bao and gieo < 0.35:
+                cau = rng.choice(TAY_KHONG)
+            elif ke_tren.ten_phap_bao and gieo < 0.78:
                 cau = rng.choice(DUNG_PHAP_BAO)
             else:
                 cau = rng.choice(AP_DAO_MANH)
