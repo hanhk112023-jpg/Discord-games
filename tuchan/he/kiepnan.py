@@ -25,6 +25,7 @@ class KetKiep:
     thuong_gio: float = 0.0  # phần của thời gian dưỡng thương tối đa
     tu_vong: bool = False
     dan_pham: int = 0  # chỉ dùng cho ngưng đan
+    chac_chan: bool = False  # vượt được cửa này thì coi như đã qua bậc, không gieo lại
     can_cot_them: float = 0.0
     cong_them: float = 0.0  # cộng vào tỉ lệ đột phá nếu vượt kiếp đẹp
 
@@ -123,13 +124,41 @@ def _tay_tuy(rng: random.Random, ts, hs: dict, kn: KhaoNghiem) -> KetKiep:
 
 
 def _ngung_dan(rng: random.Random, ts, hs: dict, kn: KhaoNghiem) -> KetKiep:
-    kq = KetKiep(qua=True)
+    kq = KetKiep(qua=True, chac_chan=True)
     kq.van.append(kn.mo_ta)
     kq.van.append(
         "Chân khí trong đan điền bắt đầu xoáy. Càng xoáy càng chặt, càng chặt càng nóng. "
         "Ngươi phải giữ nó đúng ở một điểm — lệch một sợi tóc thì đan lệch tâm, "
         "và đan lệch tâm thì cả đời sau này không tròn lại được."
     )
+
+    # nén hỏng thì đan vỡ, và người vỡ theo
+    giu = 0.40 + (ts.dao_tam - 60) / 260.0 + (ts.tu_chat - 1.0) * 0.55
+    giu += min(0.15, ts.that_bai_lien * 0.05) + ts.buff_ho_kiep + ts.buff_pha_chuong
+    giu *= 0.85 + 0.3 * (ts.than_the / 100.0)
+    if rng.random() > min(0.9, max(0.1, giu)):
+        kq.qua = False
+        kq.ton_than = rng.randint(28, 48)
+        kq.ton_tam = rng.randint(6, 14)
+        kq.thuong_gio = 1.0
+        kq.van.append(
+            "Tới nhịp cuối cùng, cái điểm ấy lệch đi. Chỉ một sợi tóc — nhưng một sợi tóc ở đây là đủ. "
+            "Khối chân khí đang xoáy nổ tung ngay trong đan điền ngươi."
+        )
+        kq.van.append(
+            "Ngươi không kêu được thành tiếng. Máu trào ra từ bảy khiếu, hai tay bấu xuống nền đá "
+            "tới mức móng tay bật ra. Khi cơn đau lùi xuống đủ để ngươi nghĩ được, ý nghĩ đầu tiên là: "
+            "*may quá, đan điền chưa nát.* Ý nghĩ thứ hai: *lần sau sẽ khó hơn lần này.*"
+        )
+        if rng.random() < kn.tu_vong:
+            kq.tu_vong = True
+            kq.van.append(
+                "**Nhưng đan điền nát thật.**\n\n"
+                "Chân khí cả đời ngươi gom góp xổ ra một lượt, xé thân thể ngươi từ bên trong. "
+                "Người ta tìm thấy ngươi trong tư thế ngồi, hai tay vẫn kết ấn, "
+                "và một vệt cháy nhỏ hình tròn ngay dưới rốn — chỗ mà lẽ ra hôm nay đã có một viên kim đan."
+            )
+        return kq
     # phẩm chất kim đan
     diem = rng.gauss(0, 1) * 1.3
     diem += (ts.dao_tam - 60) / 22.0
@@ -355,6 +384,7 @@ def _thien_kiep(rng: random.Random, ts, hs: dict, kn: KhaoNghiem, so_dot: int | 
 def _phi_thang(rng: random.Random, ts, hs: dict, kn: KhaoNghiem) -> KetKiep:
     """Cửu Trọng Đại Kiếp — cửa cuối. Qua được thì không còn là người nữa."""
     kq = _thien_kiep(rng, ts, hs, kn, so_dot=9)
+    kq.chac_chan = True
     if not kq.qua:
         kq.van.append(
             "Thiên môn không mở. Nó chưa từng mở cho ai vội vàng. "

@@ -350,6 +350,8 @@ async def dot_pha(kho, ts, rng: random.Random | None = None, he_so_the_gioi: dic
         for dong in kk.van:
             kq.them(dong)
         ti_le = min(0.96, ti_le + kk.cong_them)
+        if kk.qua and kk.chac_chan:
+            ti_le = 1.0  # vượt được cửa này tức là đã qua bậc
         kiepnan.ap_dung(ts, kk)
         ts.buff_pha_chuong = 0.0
         if not kk.qua:
