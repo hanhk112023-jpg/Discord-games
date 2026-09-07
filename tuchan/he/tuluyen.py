@@ -349,6 +349,10 @@ async def dot_pha(kho, ts, rng: random.Random | None = None, he_so_the_gioi: dic
     if kk is not None:
         for dong in kk.van:
             kq.them(dong)
+        if kk.dan_pham:
+            kq.anh = "kim_dan.png"
+        elif ts.canh_gioi >= 7:
+            kq.anh = "do_kiep.png"
         ti_le = min(0.96, ti_le + kk.cong_them)
         if kk.qua and kk.chac_chan:
             ti_le = 1.0  # vượt được cửa này tức là đã qua bậc

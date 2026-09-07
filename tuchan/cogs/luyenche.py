@@ -164,12 +164,18 @@ class CogLuyenChe(commands.Cog, name="Luyện chế"):
             await ctx.send("Chưa ai nghe nói tới món đó.")
             return
         vp = vatpham.lay(ma)
-        kq = KetQua(tieu_de=vp.ten)
+        kq = KetQua(tieu_de=vp.ten, anh=vatpham.tranh_cua(vp))
         kq.them(vp.mo_ta)
         loai = {"duoc_lieu": "một loại dược liệu", "vat_lieu": "vật liệu luyện khí",
                 "dan_duoc": "một loại đan dược", "phap_bao": "pháp bảo",
                 "ky_vat": "vật kỳ lạ", "ngoc_gian": "ngọc giản"}.get(vp.loai, "một món đồ")
         kq.them(f"Người trong nghề xếp nó vào hàng **{vp.pham} phẩm** — {loai}.")
+        if vp.loai == "phap_bao" and vp.loai_vu_khi:
+            from ..he.thutich import LOI_VU_KHI
+            kq.them(f"Cách dùng thì thuộc lối **{LOI_VU_KHI.get(vp.loai_vu_khi, 'khí giới')}** — "
+                    "mỗi lối một kiểu ra tay, và người biết xem thì nhìn một chiêu là đoán ra món trong tay ngươi.")
+        if vp.ghi_chu:
+            kq.them(f"*{vp.ghi_chu}*")
         if vp.loai == "phap_bao" and vp.canh_gioi_toi_thieu:
             from ..canhgioi import canh_gioi
             kq.them(f"Kẻ dưới **{canh_gioi(vp.canh_gioi_toi_thieu).ten}** thì đừng mơ điều khiển nổi nó.")

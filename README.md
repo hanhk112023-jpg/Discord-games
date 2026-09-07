@@ -17,7 +17,7 @@ Mọi thứ được kể bằng văn — như đọc *Phàm Nhân Tu Tiên* hay
 | **Thư viện** | discord.py 2.x — `commands.Bot` với **hybrid command**: mọi lệnh chạy được cả `!lenh` lẫn `/lenh` |
 | **Dữ liệu** | SQLite qua `aiosqlite` (không cần cài server) |
 | **Lệnh** | 39 lệnh, đều có bản prefix và bản slash |
-| **Tranh** | 8 bức thuỷ mặc do model ảnh dựng riêng cho từng cảnh giới / địa danh |
+| **Tranh** | 18 bức thuỷ mặc do model ảnh dựng riêng: cảnh giới, địa danh, kim đan, binh khí, linh đan |
 | **Thanh ảnh** | 3 đoạn phim ngắn (Ken Burns + lời kể + gió + tiếng ngân trầm) đính kèm vào các khoảnh khắc lớn |
 | **Lời kể** | 3 đoạn thu âm tiếng Việt cho nhập đạo, kết đan, và lời lão bán trà |
 
@@ -179,6 +179,12 @@ Kết trận có một câu bình, khác nhau tuỳ thắng đậm, thắng sát
 ---
 
 ## Tranh, tiếng và thanh ảnh
+
+**Tranh vật phẩm.** Ngoài tranh cảnh giới / địa danh, các món pháp bảo và đan dược đáng kể đều có bức vẽ riêng
+(`Huyết Hà Ma Đao`, `Ngự Phong Phi Kiếm`, `Huyền Thiết Trọng Kiếm`, `Cửu U Hồn Chung`, `Trảm Tiên Đài`,
+`Độ Ách Đan`, `Huyết Bồ Đề`), món chưa có tranh riêng thì mượn bức chung của chủng loại
+(Binh Khí Phổ cho khí giới, Đan Phổ cho đan dược). Tranh tự hiện khi: hỏi `vatpham`, `deo` nhận chủ pháp bảo,
+`uongdan`, luyện chế thành công, mở `binhkhi` / `linhdan` / `kimdan`, và khi kết đan (bức `kim_dan.png`).
 
 ```
 assets/tranh/       8 bức thuỷ mặc: bìa, Luyện Khí, Kết Đan, Độ Kiếp,

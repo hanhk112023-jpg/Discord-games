@@ -19,6 +19,7 @@ class VatPham:
     loai_vu_khi: str = ""  # kiem | dao | thuong | phi_kiem | cung | ti | phu | giap |
                            # chuong | an | phuong | but | quat | dinh | chuy | kinh | dai
     ghi_chu: str = ""      # một câu về lai lịch, hiện khi hỏi kỹ
+    tranh: str = ""        # bức thuỷ mặc riêng của món này, nếu có
 
     @property
     def ten_pham(self) -> str:
@@ -192,7 +193,7 @@ _dang_ky([
     _vp("huyen_thiet_trong_kiem", "Huyền Thiết Trọng Kiếm", "phap_bao", 4,
         "Kiếm nặng bảy trăm cân, không mũi không lưỡi. Nó không cắt — nó **đập**.",
         gia=13000, uy_luc=0.44, canh_gioi_toi_thieu=2, loai_vu_khi="kiem",
-        ghi_chu="Kẻ dùng được nó thường không cần học chiêu thức nào cả."),
+        ghi_chu="Kẻ dùng được nó thường không cần học chiêu thức nào cả.", tranh="huyen_thiet_trong_kiem.png"),
     _vp("kim_tam_ti", "Bách Độc Kim Tàm Ti", "phap_bao", 4,
         "Một sợi tơ vàng mảnh hơn tóc, thả ra thì mất hút trong không khí. Người bị nó cắt thường chưa kịp biết.",
         gia=15000, uy_luc=0.46, canh_gioi_toi_thieu=2, loai_vu_khi="ti",
@@ -208,15 +209,15 @@ _dang_ky([
     _vp("cuu_u_hon_chung", "Cửu U Hồn Chung", "phap_bao", 5,
         "Chuông đồng nhỏ bằng nắm tay, rung lên thì thần thức kẻ địch rung theo. Ai nghe đủ chín tiếng thì không tỉnh lại nữa.",
         gia=52000, uy_luc=0.62, canh_gioi_toi_thieu=2, loai_vu_khi="chuong",
-        ghi_chu="Bên trong chuông có khắc chín cái tên. Không ai biết đó là chín ai."),
+        ghi_chu="Bên trong chuông có khắc chín cái tên. Không ai biết đó là chín ai.", tranh="cuu_u_hon_chung.png"),
     _vp("ngu_phong_phi_kiem", "Ngự Phong Phi Kiếm", "phap_bao", 5,
         "Phi kiếm ba thước, nhẹ như một hơi thở. Xuất kiếm rồi thì kiếm quang mới tới, tiếng gió tới sau cùng.",
         gia=56000, uy_luc=0.64, canh_gioi_toi_thieu=3, loai_vu_khi="phi_kiem",
-        ghi_chu="Luyện bằng Lạc Lô Tinh Kim, nuôi trong đan điền ba mươi năm mới ra khỏi vỏ."),
+        ghi_chu="Luyện bằng Lạc Lô Tinh Kim, nuôi trong đan điền ba mươi năm mới ra khỏi vỏ.", tranh="ngu_phong_phi_kiem.png"),
     _vp("huyet_ha_ma_dao", "Huyết Hà Ma Đao", "phap_bao", 6,
         "Đao đỏ sẫm, chém càng nhiều thì càng sắc. Nó khát, và nó không giấu chuyện đó.",
         gia=180000, uy_luc=0.78, canh_gioi_toi_thieu=3, loai_vu_khi="dao",
-        ghi_chu="Chủ nhân đời trước của nó chết vì chính nó, vào một đêm không có ai để chém."),
+        ghi_chu="Chủ nhân đời trước của nó chết vì chính nó, vào một đêm không có ai để chém.", tranh="huyet_ha_ma_dao.png"),
     _vp("thanh_loan_vu_y", "Thanh Loan Vũ Y", "phap_bao", 6,
         "Áo dệt bằng lông chim loan xanh, mặc vào nhẹ như không mặc gì. Đao chém tới thì lông áo dựng lên đỡ lấy.",
         gia=190000, uy_luc=0.72, canh_gioi_toi_thieu=3, loai_vu_khi="giap",
@@ -232,7 +233,7 @@ _dang_ky([
     _vp("tram_tien_dai", "Trảm Tiên Đài", "phap_bao", 8,
         "Một phiến đá đen vuông vức lơ lửng, mặt đá nhẵn tới mức soi thấy mặt người — và mặt người soi trong đó luôn cúi xuống.",
         gia=2600000, uy_luc=1.20, canh_gioi_toi_thieu=5, loai_vu_khi="dai",
-        ghi_chu="Tên của nó không phải nói quá. Đã có tiên bị chém trên đài này."),
+        ghi_chu="Tên của nó không phải nói quá. Đã có tiên bị chém trên đài này.", tranh="tram_tien_dai.png"),
     _vp("hon_don_chung", "Hỗn Độn Chung", "phap_bao", 9,
         "Không rõ chất liệu, không rõ tuổi. Chuông chưa từng kêu. Người ta nói tiếng đầu tiên của nó sẽ là tiếng cuối cùng của một thời đại.",
         gia=99000000, uy_luc=1.60, canh_gioi_toi_thieu=7, loai_vu_khi="chuong",
@@ -262,7 +263,7 @@ _dang_ky([
     _vp("do_ach_dan", "Độ Ách Đan", "dan_duoc", 7,
         "Đan đen tuyền, nuốt xuống thì da thịt nổi lên một lớp ánh kim rất mỏng. Nó không cứu ngươi khỏi lôi kiếp — "
         "nó chỉ giúp ngươi chịu thêm được một đạo nữa.",
-        gia=520000, hieu_qua={"ho_kiep": 0.25, "tri_thuong": 30}),
+        gia=520000, hieu_qua={"ho_kiep": 0.25, "tri_thuong": 30}, tranh="do_ach_dan.png"),
     _vp("kim_cang_dan", "Kim Cang Hộ Thể Đan", "dan_duoc", 5,
         "Đan vàng xám nặng tay. Trong nửa ngày sau khi uống, đòn đánh vào người ngươi nghe như đánh vào chuông đá.",
         gia=28000, hieu_qua={"ho_kiep": 0.12, "tri_thuong": 40, "can_cot": 1}),
@@ -276,7 +277,7 @@ _dang_ky([
     _vp("huyet_bo_de", "Huyết Bồ Đề", "dan_duoc", 5,
         "Không phải đan luyện ra, mà là một khối kết tinh đỏ sẫm moi từ trong óc yêu thú già. Tăng tu vi rất nhanh, "
         "và để lại trong ngươi một thứ gì đó không phải của ngươi.",
-        gia=36000, hieu_qua={"tu_vi": 26000, "sat_nghiep": 5, "dao_tam": -8}),
+        gia=36000, hieu_qua={"tu_vi": 26000, "sat_nghiep": 5, "dao_tam": -8}, tranh="huyet_bo_de.png"),
     _vp("tuc_cot_dan", "Tục Cốt Đan", "dan_duoc", 4,
         "Xương gãy nát tới mấy cũng nối lại được, chỉ có điều lúc nối thì ngươi tỉnh táo hoàn toàn.",
         gia=6000, hieu_qua={"tri_thuong": 80}),
@@ -304,6 +305,23 @@ _dang_ky([
     _vp("cuu_thien_huyen_thiet", "Cửu Thiên Huyền Thiết", "vat_lieu", 8,
         "Sắt đen từ tầng trời thứ chín, nặng tới mức một khối bằng nắm tay làm sập cả cái bàn đá.", gia=460000),
 ])
+
+
+# Món nào chưa có tranh riêng thì mượn tranh chung của chủng loại.
+TRANH_THEO_LOAI = {
+    "phap_bao": "binh_khi_pho.png",
+    "dan_duoc": "dan_pho.png",
+    "duoc_lieu": "dan_pho.png",
+    "vat_lieu": "binh_khi_pho.png",
+}
+
+
+def tranh_cua(ma_hoac_vp) -> str:
+    """Bức tranh nên đính kèm khi nhắc tới một món đồ."""
+    vp = lay(ma_hoac_vp) if isinstance(ma_hoac_vp, str) else ma_hoac_vp
+    if vp is None:
+        return ""
+    return vp.tranh or TRANH_THEO_LOAI.get(vp.loai, "")
 
 
 def lay(ma: str) -> VatPham | None:

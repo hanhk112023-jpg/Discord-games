@@ -91,6 +91,7 @@ async def luyen_dan(kho, ts, ma_cong_thuc: str, rng: random.Random | None = None
         so = rng.randint(*ct.so_luong)
         await kho.them_vat(ts.user_id, ct.thanh_pham, so)
         vp = vatpham.lay(ct.thanh_pham)
+        kq.anh = vatpham.tranh_cua(vp) or kq.anh
         kq.them(
             f"Ngươi thu hoả. Nắp lò mở ra, một luồng hương xộc lên mũi — thơm, nhưng là cái thơm khiến người ta tỉnh táo. "
             f"Dưới đáy lò: **{vp.ten}**{f' ×{so}' if so > 1 else ''}."
@@ -165,6 +166,7 @@ async def luyen_khi(kho, ts, ma_cong_thuc: str, rng: random.Random | None = None
     if thanh_bai(rng, ti_le):
         await kho.them_vat(ts.user_id, ct.thanh_pham, 1)
         vp = vatpham.lay(ct.thanh_pham)
+        kq.anh = vatpham.tranh_cua(vp) or kq.anh
         kq.them(
             f"Nhát cuối cùng hạ xuống. Phù văn trên thân vật sáng lên một lượt rồi lặn vào trong. "
             f"**{vp.ten}** đã thành."
@@ -208,7 +210,7 @@ async def deo_phap_bao(kho, ts, ma: str) -> KetQua:
     cu = ts.phap_bao
     ts.phap_bao = ma
     await kho.luu(ts)
-    kq = KetQua(tieu_de="Nhận chủ")
+    kq = KetQua(tieu_de="Nhận chủ", anh=vatpham.tranh_cua(vp))
     if cu and cu != ma:
         kq.them(f"Ngươi thu **{vatpham.ten(cu)}** vào túi càn khôn, không phải vì nó dở, mà vì hôm nay ngươi cần thứ khác.")
     kq.them(
@@ -228,7 +230,7 @@ async def uong_dan(kho, ts, ma: str, rng: random.Random | None = None) -> KetQua
     if not await kho.bot_vat(ts.user_id, ma, 1):
         return KetQua(tieu_de="Không có", van=[f"Trong túi không có **{vp.ten}**."], thanh_cong=False)
 
-    kq = KetQua(tieu_de=f"Dùng {vp.ten}")
+    kq = KetQua(tieu_de=f"Dùng {vp.ten}", anh=vatpham.tranh_cua(vp))
     kq.them(f"Ngươi đặt **{vp.ten}** lên lưỡi. {vp.mo_ta}")
     hq = vp.hieu_qua
     if "tri_thuong" in hq:

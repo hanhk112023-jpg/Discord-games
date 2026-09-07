@@ -93,7 +93,7 @@ const NUT = [
  ["nhiemvu","Chấp sự đường"],["viecdi","Lên đường"],["sotay","Sổ tay"],["luyendan","Mở lò"],
  ["cuahang","Xuống chợ"],["tuido","Túi càn khôn"],["thientuong","Xem trời"],["nhatky","Thủ ký"],
  ["uongdan","Uống đan"],["deo","Đeo pháp bảo"],["mua","Mua hàng"],
- ["canhgioi","Bia mười bậc"],["kiepnan","Chín cửa ải"],["binhkhi","Binh Khí Phổ"],
+ ["vatpham","Ngắm vật phẩm"],["canhgioi","Bia mười bậc"],["kiepnan","Chín cửa ải"],["binhkhi","Binh Khí Phổ"],
  ["linhdan","Đan Phổ"],["kimdan","Chín phẩm kim đan"],
  ["sukien","Gọi thiên biến"],["lam_lai","Làm lại từ đầu",1]
 ];
@@ -281,6 +281,28 @@ async def xu_ly(request: web.Request) -> web.Response:
                 kq.them(f"**{nhan}:** {s}")
         kq.them(mo_ta_phap_bao(ts.phap_bao))
         kq.them(mo_ta_linh_thach(ts.linh_thach))
+    elif lenh == "vatpham":
+        from tuchan.data import vatpham as dl_vp
+        if not tham:
+            uu_tien = [m for m, v in dl_vp.DANH_MUC.items() if v.tranh]
+            con_lai = [m for m in dl_vp.DANH_MUC if m not in uu_tien]
+            opts = "".join(f'<option value="{m}">{dl_vp.ten(m)}</option>' for m in uu_tien + sorted(con_lai))
+            chon = ('<div class="ghi">Hỏi kỹ về món nào?</div><div class="hang">'
+                    f'<select id="vp_xem">{opts}</select>'
+                    '<button onclick="chon(\'vatpham\',\'vp_xem\')">Cầm lên xem</button></div>')
+            return goi_ra(KetQua(tieu_de="Giá hàng", van=[""]), chon)
+        vp = dl_vp.lay(tham)
+        if vp is None:
+            kq = KetQua(tieu_de="Không có món ấy", van=["Chưa ai nghe nói tới thứ đó."])
+        else:
+            kq = KetQua(tieu_de=vp.ten, anh=dl_vp.tranh_cua(vp))
+            kq.them(vp.mo_ta)
+            kq.them(f"Người trong nghề xếp nó vào hàng **{vp.pham} phẩm**.")
+            if vp.loai_vu_khi:
+                from tuchan.he.thutich import LOI_VU_KHI
+                kq.them(f"Lối dùng: **{LOI_VU_KHI.get(vp.loai_vu_khi, 'khí giới')}**.")
+            if vp.ghi_chu:
+                kq.them(f"*{vp.ghi_chu}*")
     elif lenh in ("canhgioi", "kiepnan", "binhkhi", "linhdan", "kimdan"):
         from tuchan.he import thutich
         kq = {"canhgioi": thutich.bia_muoi_bac, "kiepnan": thutich.chin_cua_ai,

@@ -68,7 +68,7 @@ def chin_cua_ai() -> KetQua:
 
 def binh_khi_pho(nguong_pham: int = 1) -> KetQua:
     nguong = max(1, min(9, nguong_pham))
-    kq = KetQua(tieu_de="Binh Khí Phổ", mau=config.MAU_KIM)
+    kq = KetQua(tieu_de="Binh Khí Phổ", mau=config.MAU_KIM, anh="binh_khi_pho.png")
     kq.them(
         "Ở Lạc Hà Thành có một lão thợ rèn cụt tay trái, cả đời chỉ làm một việc: "
         "chép lại tên những món khí giới mà lão từng nghe nói tới. "
@@ -81,6 +81,8 @@ def binh_khi_pho(nguong_pham: int = 1) -> KetQua:
         dong = f"**{v.ten}** · {loai} · phẩm thứ {v.pham}\n{v.mo_ta}"
         if v.ghi_chu:
             dong += f"\n*{v.ghi_chu}*"
+        if v.tranh:
+            dong += "\n*(Trong phổ có kèm một bức vẽ món này — xem bằng lệnh vật phẩm.)*"
         kq.them(dong)
     kq.them(
         "*“Phẩm càng cao thì càng khó thuần,”* lão nói, gõ búa xuống đe một cái. "
@@ -115,7 +117,7 @@ def _cong_dung(vp) -> list[str]:
 
 
 def dan_pho() -> KetQua:
-    kq = KetQua(tieu_de="Đan Phổ", mau=config.MAU_LINH, anh="dan_phong.png")
+    kq = KetQua(tieu_de="Đan Phổ", mau=config.MAU_LINH, anh="dan_pho.png")
     kq.them(
         "Đan Phổ không phải sách quý. Nó là một xấp giấy dày, mép đã quăn, treo bằng dây gai "
         "trong mọi hiệu thuốc từ Lạc Hà tới Vọng Hải. Ai cũng đọc được. "
@@ -133,7 +135,7 @@ def dan_pho() -> KetQua:
 
 
 def kim_dan_pho() -> KetQua:
-    kq = KetQua(tieu_de="Chín phẩm kim đan", mau=config.MAU_KIM, anh="ket_dan.png")
+    kq = KetQua(tieu_de="Chín phẩm kim đan", mau=config.MAU_KIM, anh="kim_dan.png")
     kq.them(
         "Kết đan chỉ có một lần trong đời. Viên đan ngưng ra hôm ấy tròn hay méo, trong hay đục, "
         "sẽ theo ngươi tới tận lúc nhắm mắt — và không có đan dược, cơ duyên hay sư phụ nào sửa lại được."
