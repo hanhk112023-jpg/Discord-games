@@ -15,9 +15,7 @@ on:
         options: [song, thu]
   schedule:
     - cron: '*/14 * * * *'
-  workflow_run:
-    workflows: ["Sống · cửa động 24/7"]
-    types: [completed]
+# workflow_run loop disabled: GitHub disallows a workflow listening to itself (dùng cron hoặc PAT dispatch)
 
 permissions:
   contents: write
