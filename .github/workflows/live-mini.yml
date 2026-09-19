@@ -35,6 +35,8 @@ jobs:
       TELE_GUILD: ${{ vars.TELE_GUILD || '1' }}
       TELE_ADMIN_IDS: ${{ vars.TELE_ADMIN_IDS }}
       WEB_PORT: "8080"
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -58,7 +60,7 @@ jobs:
           for i in $(seq 1 40); do
             sleep 2
             URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1 || true)
-            if [ -n "${URL:-}" ]; then echo "TELE_MINIAPP_URL=$URL" >> "$GITHUB_ENV"; echo "🏮 $URL"; break; fi
+            if [ -n "${URL:-}" ]; then echo "TELE_MINIAPP_URL=$URL" >> "$GITHUB_ENV"; export TELE_MINIAPP_URL="$URL"; echo "🏮 $URL"; break; fi
           done
           test -n "${TELE_MINIAPP_URL:-}" || { echo "::error::đường hầm không mở được cửa"; exit 1; }
 
