@@ -83,14 +83,21 @@ jobs:
           TAIL+='.catch(function(){document.getElementById("x").innerHTML="Chưa có cửa — có lẽ Pages chưa bật, hoặc phiên trực đang nhóm lửa.";});\n'
           TAIL+='</script></body>'
           CONTENT=$(printf '%s' "$TAIL" | base64 -w0)
-          gh api -X PUT "repos/$REPO/contents/index.html" --input - <<EOF || echo "⚠ chưa dựng được bảng cổng (Pages cần bật 1-click trong Settings) — bỏ qua"
-          {"message":"cửa động đổi nhà","branch":"gh-pages","content":"$CONTENT"}
-          EOF
+          INDEX_SHA=$(gh api "repos/$REPO/contents/index.html?ref=gh-pages" --jq .sha 2>/dev/null || true)
+          gh api -X PUT "repos/$REPO/contents/index.html" \
+            -f message="cửa động đổi nhà" \
+            -f branch="gh-pages" \
+            -f content="$CONTENT" \
+            ${INDEX_SHA:+-f sha="$INDEX_SHA"} || echo "⚠ chưa dựng được bảng cổng (Pages cần bật 1-click trong Settings) — bỏ qua"
+
           printf '{"url":"%s","lan_sau":"%s"}' "$TELE_MINIAPP_URL" "$(date -Is)" > /tmp/mini.json
           M=$(base64 -w0 < /tmp/mini.json)
-          gh api -X PUT "repos/$REPO/contents/mini.json" --input - <<EOF || true
-          {"message":"ghé cửa $TELE_MINIAPP_URL","branch":"gh-pages","content":"$M"}
-          EOF
+          MINI_SHA=$(gh api "repos/$REPO/contents/mini.json?ref=gh-pages" --jq .sha 2>/dev/null || true)
+          gh api -X PUT "repos/$REPO/contents/mini.json" \
+            -f message="ghé cửa $TELE_MINIAPP_URL" \
+            -f branch="gh-pages" \
+            -f content="$M" \
+            ${MINI_SHA:+-f sha="$MINI_SHA"} || true
 
       - name: Nhóm lửa
         run: |

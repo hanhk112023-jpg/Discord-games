@@ -36,6 +36,10 @@
     codex: ["Vạn Vật Phổ", "Bách khoa toàn thư về thần dược và pháp bảo cổ đại."],
   };
 
+  let sessionToken = "";
+  try {
+    sessionToken = sessionStorage.getItem("tien_do_phien") || "";
+  } catch (_) {}
   let state = null,
     page = "home",
     combatTab = "hunt",
@@ -176,11 +180,15 @@
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15000);
     try {
+      const headers = {
+        ...(sessionToken ? { "X-Phien": sessionToken } : {}),
+        ...(tg?.initData ? { "X-Telegram-Init-Data": tg.initData } : {}),
+        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      };
       const res = await fetch(path, {
         method: body === undefined ? "GET" : "POST",
         credentials: "include",
-        headers:
-          body === undefined ? {} : { "Content-Type": "application/json" },
+        headers,
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal,
       });
@@ -1143,6 +1151,12 @@
   async function start() {
     try {
       const data = await api("/vao", { initData: tg?.initData || "" });
+      if (data?.phien) {
+        sessionToken = data.phien;
+        try {
+          sessionStorage.setItem("tien_do_phien", sessionToken);
+        } catch (_) {}
+      }
       $("#connection").innerHTML =
         `<i></i> ${data.chinh_chu ? "Telegram đã kết nối" : "Chế độ trải nghiệm"}`;
       $("#register-mode").textContent = data.chinh_chu

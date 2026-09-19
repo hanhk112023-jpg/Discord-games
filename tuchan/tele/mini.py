@@ -52,7 +52,7 @@ def kiem_dau_init(init: str) -> dict | None:
         chu_ky = parts.pop("hash", "")
         # auth_date ở lại trong chuỗi kiểm — chuẩn Telegram: mọi tham số trừ hash
         luc = int(parts.get("auth_date", "0"))
-        if not 0 <= time.time() - luc <= 24 * 3600:
+        if not -300 <= time.time() - luc <= 24 * 3600:
             return None
         chuoi = "\n".join(f"{k}={v}" for k, v in sorted(parts.items()))
         khoa = hmac.new(b"WebAppData", config.TELEGRAM_TOKEN.encode(), hashlib.sha256).digest()
@@ -154,9 +154,24 @@ class Dong:
 
     def uid_cua(self, request: web.Request) -> tuple[int, int]:
         """Trả (uid, chat) của phiên đã ký; không suy đoán danh tính từ IP."""
+        hdr = request.headers.get("X-Phien") or request.headers.get("Authorization")
+        if hdr:
+            token_str = hdr[7:].strip() if hdr.startswith("Bearer ") else hdr.strip()
+            phien = doc_pien(token_str)
+            if phien is not None:
+                return phien, self.lo.cho_cua(phien)
+
         phien = doc_pien(request.cookies.get(TEN_COOK))
         if phien is not None:
             return phien, self.lo.cho_cua(phien)
+
+        init = request.headers.get("X-Telegram-Init-Data") or request.headers.get("initData") or ""
+        if init:
+            dau = kiem_dau_init(init)
+            if dau:
+                uid = dau["u"]
+                return uid, self.lo.cho_cua(uid)
+
         raise web.HTTPUnauthorized(text="Hãy mở lại Mini App để đăng nhập.")
 
     @staticmethod
@@ -183,8 +198,9 @@ class Dong:
             uid, chat = dau["u"], self.lo.cho_cua(dau["u"])
             self.lo.cua[uid] = chat
             await self.kho.danh_thiep_luu(uid, chat, dau["ten"])
-            r = web.json_response({"ok": True, "chu": dau["ten"], "chinh_chu": True})
-            r.set_cookie(TEN_COOK, lam_pien(uid), max_age=TUOI_PHIEN, httponly=True,
+            pien_str = lam_pien(uid)
+            r = web.json_response({"ok": True, "chu": dau["ten"], "chinh_chu": True, "phien": pien_str})
+            r.set_cookie(TEN_COOK, pien_str, max_age=TUOI_PHIEN, httponly=True,
                          samesite="None", secure=True)
             return r
         if not CHO_KHACH:
@@ -192,8 +208,9 @@ class Dong:
         cu = doc_pien(request.cookies.get(TEN_COOK))
         uid = cu if cu is not None and cu < 0 else -secrets.randbelow(2**52 - 1) - 1
         self.lo.cho_cua(uid)
-        r = web.json_response({"ok": True, "chu": "khách qua ngưỡng", "chinh_chu": False})
-        r.set_cookie(TEN_COOK, lam_pien(uid), max_age=TUOI_PHIEN, httponly=True,
+        pien_str = lam_pien(uid)
+        r = web.json_response({"ok": True, "chu": "khách qua ngưỡng", "chinh_chu": False, "phien": pien_str})
+        r.set_cookie(TEN_COOK, pien_str, max_age=TUOI_PHIEN, httponly=True,
                      samesite="None" if request.secure or request.headers.get("X-Forwarded-Proto") == "https" else "Lax",
                      secure=request.secure or request.headers.get("X-Forwarded-Proto") == "https")
         return r
