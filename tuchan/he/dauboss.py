@@ -27,6 +27,11 @@ from .thienco import roi_do, van_khi
 # ───────────────────────── dựng bên tham chiến ─────────────────────────
 
 def ben_boss(bv: dl_boss.BossVuong) -> chiendau.BenThamChien:
+    cg = bv.canh_gioi
+    tang = max(1, bv.tang)
+    hp_m = int((400 + 150 * tang + 1200 * (cg ** 1.8)) * bv.tho * 1.5)
+    cong = int((40 + 18 * tang + 150 * (cg ** 1.8)) * bv.hung_hang * bv.tho)
+    thu = int((18 + 11 * tang + 75 * (cg ** 1.8)) * bv.tho)
     return chiendau.BenThamChien(
         ten=bv.ten,
         canh_gioi=bv.canh_gioi,
@@ -38,6 +43,12 @@ def ben_boss(bv: dl_boss.BossVuong) -> chiendau.BenThamChien:
         thu_doan=bv.thu_doan,
         hung_hang=bv.hung_hang,
         dan_pham=min(9, bv.canh_gioi + 3) if bv.canh_gioi >= 2 else 0,
+        hp=hp_m,
+        hp_max=hp_m,
+        cong=cong,
+        thu=thu,
+        bao_kich=round(10.0 + cg * 2.0, 1),
+        toc_do=int(55 + 10 * cg + tang * 3),
     )
 
 

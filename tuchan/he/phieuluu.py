@@ -21,6 +21,17 @@ from .thienco import roi_do, van_khi
 
 def ben_tu_nguoi_choi(ts) -> chiendau.BenThamChien:
     mp = dl_monphai.lay(ts.mon_phai) if ts.mon_phai else None
+    cs = ts.tinh_chi_so()
+    from ..data.kynang import lay_ky_nang
+    kn_trang_bi = ts.lay_ky_nang_trang_bi()
+    danh_sach_kn = []
+    for ma_kn in kn_trang_bi:
+        kn_obj = lay_ky_nang(ma_kn)
+        if kn_obj:
+            danh_sach_kn.append(kn_obj.ten)
+    if not danh_sach_kn:
+        danh_sach_kn = ["Kiếm Khí Trảm", "Kim Cương Hộ Thể"]
+
     return chiendau.BenThamChien(
         ten=ts.ten,
         canh_gioi=ts.canh_gioi,
@@ -33,10 +44,24 @@ def ben_tu_nguoi_choi(ts) -> chiendau.BenThamChien:
         la_nguoi_choi=True,
         cong_phap=(mp.cong_phap if mp else ""),
         dan_pham=ts.dan_pham,
+        hp=cs["hp"],
+        hp_max=cs["hp_max"],
+        mp=cs["mp"],
+        mp_max=cs["mp_max"],
+        cong=cs["cong"],
+        thu=cs["thu"],
+        bao_kich=cs["bao_kich"],
+        toc_do=cs["toc_do"],
+        ky_nang=danh_sach_kn,
     )
 
 
 def ben_tu_dich(d) -> chiendau.BenThamChien:
+    tang = max(1, d.tang)
+    cg = d.canh_gioi
+    hp_m = int((300 + 130 * tang + 900 * (cg ** 1.8)) * d.tho)
+    cong = int((32 + 16 * tang + 135 * (cg ** 1.8)) * d.hung_hang * d.tho)
+    thu = int((14 + 9 * tang + 65 * (cg ** 1.8)) * d.tho)
     return chiendau.BenThamChien(
         ten=d.ten,
         canh_gioi=d.canh_gioi,
@@ -48,6 +73,12 @@ def ben_tu_dich(d) -> chiendau.BenThamChien:
         thu_doan=d.thu_doan,
         hung_hang=d.hung_hang,
         dan_pham=min(9, max(0, d.canh_gioi + 2)) if d.canh_gioi >= 2 else 0,
+        hp=hp_m,
+        hp_max=hp_m,
+        cong=cong,
+        thu=thu,
+        bao_kich=round(6.0 + cg * 2.0, 1),
+        toc_do=int(45 + 10 * cg + tang * 2),
     )
 
 
@@ -58,11 +89,9 @@ async def dau_voi_dich(kho, ts, d, rng: random.Random, hs: dict, boi_canh: str =
     b = ben_tu_dich(d)
     td = chiendau.giao_dau(a, b, rng)
 
-    kq = KetQua(tieu_de=f"Chạm mặt {d.ten}", mau=config.MAU_HUYET)
+    kq = KetQua(tieu_de=f"Chạm trán {d.ten}", mau=config.MAU_HUYET)
     if boi_canh:
         kq.them(boi_canh)
-    kq.them(d.lam_quen)
-    kq.them(d.mo_ta)
     for c in td.van:
         kq.them(c)
 
@@ -74,70 +103,36 @@ async def dau_voi_dich(kho, ts, d, rng: random.Random, hs: dict, boi_canh: str =
         ts.danh_vong += max(1, int(3 * (1 + d.canh_gioi) * (1.2 if d.loai == "ma_tu" else 1.0)))
         if d.loai in ("ma_tu", "tan_tu"):
             ts.sat_nghiep += 1
-        thu = int(ten_theo_muc(d) * van_khi(rng, ts.dao_tam))
+        thu = int(ten_theo_muc(d) * van_khi(rng, ts.dao_tam) * 1.5)
         ts.tu_vi += thu
-        ton = int(td.ton_thuong_ke_thua * 0.35 * rng.uniform(0.5, 1.0))
-        ts.than_the = max(5, ts.than_the - ton)
+        ton = int(td.ton_thuong_ke_thua * 0.25 * rng.uniform(0.5, 1.0))
+        ts.than_the = max(20, ts.than_the - ton)
         rot = roi_do(rng, d.chien_loi, hs.get("ky_ngo", 1.0))
         kq.them(chiendau.loi_binh(td, a))
+
+        sl_lt = rng.randint(15, 60) * (1 + d.canh_gioi)
+        ts.linh_thach += sl_lt
+
+        phan_thuong = [f"📈 +{thu} Tu vi", f"💎 +{sl_lt} Linh thạch"]
         if rot:
-            ten_vat = []
             for ma in rot:
                 sl = 1
                 if ma == "linh_thach_ha":
-                    sl = rng.randint(8, 40) * (1 + d.canh_gioi)
-                    ts.linh_thach += sl
-                    ten_vat.append(f"một nắm linh thạch")
+                    them = rng.randint(10, 40) * (1 + d.canh_gioi)
+                    ts.linh_thach += them
                     continue
                 await kho.them_vat(ts.user_id, ma, sl)
-                ten_vat.append(vatpham.ten(ma))
-            kq.them(
-                "Ngươi lục soát chiến trường. Thu được: **" + ", ".join(ten_vat) + "**. "
-                + ("Chiến lợi phẩm dính máu, nhưng linh thạch thì không phân biệt máu của ai."
-                   if d.loai in ("ma_tu", "tan_tu") else
-                   "Ngươi lóc lấy phần dùng được, phần còn lại để cho quạ.")
-            )
-        else:
-            kq.them("Trên người kẻ bại trận chẳng có gì đáng lấy. Có những trận đánh chỉ để lại vết thương.")
+                phan_thuong.append(f"🎁 {vatpham.ten(ma)} ×{sl}")
+
+        kq.them("🎉 **CHIẾN LỢI PHẨM THU ĐƯỢC:**\n" + "\n".join(f"• {pt}" for pt in phan_thuong))
     else:
         ts.so_tran_thua += 1
-        ts.than_the = max(1, ts.than_the - td.ton_thuong_ke_thua)
-        ts.thuong_toi = int(time.time()) + int(
-            config.DUONG_THUONG_TOI_DA * (0.35 + 0.65 * td.ap_dao)
-        )
-        # mất mát
-        tui = await kho.tui(ts.user_id)
-        mat = []
-        if tui and rng.random() < 0.55:
-            ma = rng.choice(list(tui.keys()))
-            sl = min(tui[ma], rng.randint(1, 2))
-            await kho.them_vat(ts.user_id, ma, -sl)
-            mat.append(vatpham.ten(ma))
-        if ts.linh_thach > 0 and rng.random() < 0.5:
-            mat_lt = int(ts.linh_thach * rng.uniform(0.15, 0.45))
-            ts.linh_thach -= mat_lt
-            mat.append("một phần linh thạch")
+        ts.than_the = max(30, ts.than_the - min(40, td.ton_thuong_ke_thua))
+        ts.thuong_toi = int(time.time()) + 10  # Dưỡng thương ngắn chỉ 10 giây
         kq.them(chiendau.loi_binh(td, a))
-        if mat:
-            kq.them(
-                "Khi tỉnh lại, túi càn khôn đã bị lục. Mất: **" + ", ".join(mat) + "**. "
-                "Ngươi nằm nghe tiếng gió, và học được rằng thua trận thì mất nhiều hơn là mất mặt."
-            )
-        # cửa tử
-        chet = td.chi_mang and d.canh_gioi > ts.canh_gioi and rng.random() < 0.22
-        if chet:
-            ts.da_chet = 1
-            kq.them(
-                "**Ngươi không kịp bò ra khỏi chỗ đó.**\n\n"
-                f"{d.ten} không vội. Nó chờ tới khi ngươi ngừng cựa quậy. "
-                "Trên đường tu, cái chết không có nhạc đệm, không có lời trăng trối kịp nói ra — "
-                "chỉ có một chỗ đất ẩm, một cơn lạnh dâng từ chân lên, và rồi thôi."
-            )
-        else:
-            kq.them(
-                f"Ngươi lê được thân xác đi khỏi đó. Còn {khac_gio(ts.con_bao_lau_duong_thuong)} nữa "
-                "mới dám vận công lại. Sống, đôi khi, đã là một chiến quả."
-            )
+        kq.them(f"⚠️ Trận chiến bất lợi. Ngươi tạm lui để hồi phục chân khí. Vận khí điều tức 10 giây để tiếp tục chiến đấu!")
+    await kho.luu(ts)
+    return kq
     await kho.luu(ts)
     return kq
 
