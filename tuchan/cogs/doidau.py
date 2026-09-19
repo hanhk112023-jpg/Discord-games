@@ -1,4 +1,4 @@
-"""Thí đấu giữa người với người."""
+"""Thí đấu giữa hai người tu hành — lời thách treo, ứng chiến bằng nút, có thể cá cược."""
 
 from __future__ import annotations
 
@@ -8,18 +8,17 @@ from discord.ext import commands
 
 from .. import config, giaodien
 from ..bot import TuChanBot, lay_tu_si_hoac_bao
-from ..canhgioi import ten_canh_gioi
-from ..he import thidau as he_thidau
+from ..he import pk as he_pk
+from ..he.ketqua import KetQua
 
 
 class UngChien(discord.ui.View):
-    def __init__(self, cog: "CogDoiDau", ctx: commands.Context, a_id: int, b_id: int, sinh_tu: bool):
-        super().__init__(timeout=120)
+    def __init__(self, cog: "CogDoiDau", a_id: int, b_id: int, ma_thach: int):
+        super().__init__(timeout=600)
         self.cog = cog
-        self.ctx = ctx
         self.a_id = a_id
         self.b_id = b_id
-        self.sinh_tu = sinh_tu
+        self.ma_thach = ma_thach
         self.xong = False
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -35,17 +34,12 @@ class UngChien(discord.ui.View):
         for c in self.children:
             c.disabled = True
         await interaction.response.edit_message(view=self)
-        a = await self.cog.bot.kho.lay_tu_si(self.a_id)
         b = await self.cog.bot.kho.lay_tu_si(self.b_id)
-        if a is None or b is None:
+        if b is None:
             await interaction.followup.send("Một trong hai bên đã không còn ở đây.")
             return
-        if a.dang_bi_thuong or b.dang_bi_thuong:
-            await interaction.followup.send(
-                "Một bên còn mang thương thế. Đánh nhau lúc này thì không phải tỉ thí, mà là hành hình.")
-            return
         hs = await self.cog.bot.he_so(interaction.guild_id or 0)
-        kq = await he_thidau.thi_dau(self.cog.bot.kho, a, b, self.cog.bot.rng, hs, self.sinh_tu)
+        kq = await he_pk.ung_chien(self.cog.bot.kho, self.ma_thach, b, self.cog.bot.rng, hs)
         await giaodien.gui(interaction, kq)
         self.stop()
 
@@ -55,22 +49,25 @@ class UngChien(discord.ui.View):
         for c in self.children:
             c.disabled = True
         await interaction.response.edit_message(view=self)
-        await interaction.followup.send(embed=discord.Embed(
-            description=(
-                f"**{interaction.user.display_name}** chắp tay: *“Hôm nay không tiện.”*\n\n"
-                "Từ chối một lời thách không phải là hèn. Trong giang hồ, kẻ biết lúc nào nên đánh "
-                "thường sống lâu hơn kẻ lúc nào cũng dám đánh."),
-            colour=config.MAU_MUC))
+        b = await self.cog.bot.kho.lay_tu_si(self.b_id)
+        if b is not None:
+            kq = await he_pk.tu_khuoc(self.cog.bot.kho, self.ma_thach, b)
+        else:
+            kq = KetQua(tieu_de="Lời thách không còn", van=["Chuyện cũ rồi."])
+        await giaodien.gui(interaction, kq)
         self.stop()
 
     async def on_timeout(self):
         if self.xong:
             return
         try:
-            await self.ctx.send(embed=discord.Embed(
-                description=("Lời thách treo giữa không trung một hồi lâu rồi rơi xuống đất. "
-                             "Không ai bước ra. Đám đông tản đi, hơi thất vọng."),
-                colour=config.MAU_MUC))
+            await self.cog.bot.kho.thach_xoa(self.ma_thach)
+            ch = self.cog.bot.get_channel(self.cog.channel_id)
+            if ch is not None:
+                await ch.send(embed=discord.Embed(
+                    description=("Lời thách treo giữa không trung một hồi lâu rồi rơi xuống đất. "
+                                 "Không ai bước ra. Đám đông tản đi, hơi thất vọng."),
+                    colour=config.MAU_MUC))
         except Exception:
             pass
 
@@ -78,11 +75,15 @@ class UngChien(discord.ui.View):
 class CogDoiDau(commands.Cog, name="Đối đầu"):
     def __init__(self, bot: TuChanBot):
         self.bot = bot
+        self.channel_id = 0
 
-    @commands.hybrid_command(name="thidau", aliases=["thachdau"],
-                             description="Thách một người khác đo sức.")
-    @app_commands.describe(nguoi="Kẻ ngươi muốn thách", sinhtu="Đặt cược cả tính mạng?")
-    async def thidau(self, ctx: commands.Context, nguoi: discord.Member, sinhtu: bool = False):
+    @commands.hybrid_command(name="thidau", aliases=["thachdau", "pk"],
+                             description="Thách một người khác đo sức — có thể cá cược linh thạch.")
+    @app_commands.describe(nguoi="Kẻ ngươi muốn thách",
+                           sinhtu="Đặt cược cả tính mạng?",
+                           cuoc="Số linh thạch hai bên cùng đặt (tuỳ chọn)")
+    async def thidau(self, ctx: commands.Context, nguoi: discord.Member,
+                     sinhtu: bool = False, cuoc: int | None = None):
         ts = await lay_tu_si_hoac_bao(ctx, self.bot)
         if ts is None:
             return
@@ -96,33 +97,28 @@ class CogDoiDau(commands.Cog, name="Đối đầu"):
         if doi is None:
             await ctx.send(f"**{nguoi.display_name}** chưa từng bước vào cửa đạo. Đánh hắn thì mang tiếng.")
             return
-        if doi.da_chet:
-            await ctx.send("Kẻ ấy đã chết. Chuyện cũ thì thôi bỏ qua.")
+        ma, kq = await he_pk.thach_thuc(self.bot.kho, ts, doi, int(cuoc or 0), sinhtu)
+        self.channel_id = ctx.channel.id
+        if not kq.thanh_cong:
+            await giaodien.gui(ctx, kq)
             return
-        if ts.dang_bi_thuong:
-            await ctx.send("Với thương thế này mà đòi lên đài? Ngươi muốn chết cho nhanh à.")
-            return
+        embeds, files = giaodien.dung_embed(kq)
+        await ctx.send(content=nguoi.mention, embed=embeds[0], files=files,
+                       view=UngChien(self, ts.user_id, doi.user_id, ma))
 
-        e = discord.Embed(
-            title="❖ Lời thách",
-            description=(
-                f"**{ts.ten}** — {ten_canh_gioi(ts.canh_gioi, ts.tang)} — bước ra giữa sân, "
-                f"chắp tay về phía **{doi.ten}**.\n\n"
-                + (f"*“Ta muốn thỉnh giáo. **Sinh tử chiến** — sống chết tự chịu, không oán không hối.”*"
-                   if sinhtu else
-                   f"*“Ta muốn thỉnh giáo vài chiêu. Điểm tới là dừng.”*")
-                + "\n\nĐám đông giãn ra thành một vòng tròn. Bây giờ, chuyện tuỳ ở kẻ được thách."
-            ),
-            colour=config.MAU_HUYET if sinhtu else config.MAU_MUC,
-        )
-        anh = giaodien.duong_dan_anh("dau_phap.png")
-        files = []
-        if anh:
-            files.append(discord.File(str(anh), filename=anh.name))
-            e.set_image(url=f"attachment://{anh.name}")
-        await ctx.send(
-            content=nguoi.mention, embed=e, files=files,
-            view=UngChien(self, ctx, ctx.author.id, nguoi.id, sinhtu))
+    @commands.hybrid_command(name="thach", aliases=["loithach"],
+                             description="Xem những lời thách còn treo trên đầu mình.")
+    async def thach(self, ctx: commands.Context):
+        ts = await lay_tu_si_hoac_bao(ctx, self.bot)
+        if ts is None:
+            return
+        await giaodien.gui(ctx, await he_pk.danh_sach_thach(self.bot.kho, ts))
+
+    @commands.hybrid_command(name="bangpk", aliases=["bangtythi"],
+                             description="Bảng tỉ thí: ai thắng ai, ai bất bại.")
+    async def bangpk(self, ctx: commands.Context):
+        ts = await self.bot.kho.lay_tu_si(ctx.author.id)
+        await giaodien.gui(ctx, await he_pk.bang_pk(self.bot.kho, ts))
 
 
 async def setup(bot: TuChanBot):

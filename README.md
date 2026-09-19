@@ -1,6 +1,7 @@
 # 仙途無盡 — Tiên Đồ Vô Tận
 
-Một **bot Discord tu chân / tiên hiệp** viết bằng Python, theo lối **kinh điển, trường kỳ, khắc nghiệt**:
+Một **bot tu chân / tiên hiệp** viết bằng Python, chạy được trên **cả Discord lẫn Telegram**, theo lối
+**kinh điển, trường kỳ, khắc nghiệt**:
 không thanh máu, không con số, không bảng nhiệm vụ, không một chữ "EXP" nào.
 Mọi thứ được kể bằng văn — như đọc *Phàm Nhân Tu Tiên* hay *Tiên Nghịch*, chỉ khác là ngươi tự viết phần của mình.
 
@@ -14,7 +15,8 @@ Mọi thứ được kể bằng văn — như đọc *Phàm Nhân Tu Tiên* hay
 | | |
 |---|---|
 | **Ngôn ngữ** | Python 3.10+ |
-| **Thư viện** | discord.py 2.x — `commands.Bot` với **hybrid command**: mọi lệnh chạy được cả `!lenh` lẫn `/lenh` |
+| **Thư viện** | discord.py 2.x (hybrid: mọi lệnh chạy được cả `!lenh` lẫn `/lenh`) · aiogram 3 cho bản Telegram |
+| **Boss & PK** | chiến trường yêu vương cả thế giới cùng đánh, chia công theo dấu chân để lại; PK có cược, thắng ăn cả |
 | **Dữ liệu** | SQLite qua `aiosqlite` (không cần cài server) |
 | **Lệnh** | 39 lệnh, đều có bản prefix và bản slash |
 | **Tranh** | 18 bức thuỷ mặc do model ảnh dựng riêng: cảnh giới, địa danh, kim đan, binh khí, linh đan |
@@ -44,8 +46,12 @@ Mọi thứ được kể bằng văn — như đọc *Phàm Nhân Tu Tiên* hay
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-python tools/mophong.py        # diễn tập trong terminal: chạy hết mọi hệ thống
-python tools/web_dienrap.py    # mở http://localhost:8080 — chơi thử ngay trong trình duyệt
+python tools/mophong.py        # diễn tập Discord trong terminal: chạy hết mọi hệ thống
+python tools/web_dienrap.py    # mở http://localhost:8080 — Discord, chơi thử ngay trong trình duyệt
+
+python tools/tele_thutap.py            # Telegram, trong terminal — gõ lệnh, ~1 bấm nút thứ nhất
+python tools/tele_thutap.py --tu-dong  # tự chạy trọn kịch bản: nhập đạo → boss → PK → kiểm tra sổ sách
+python tools/tele_dienrap.py           # Telegram, trong trình duyệt — khung chat giả lập, nút bấm thật
 ```
 
 `tools/web_dienrap.py` dùng **đúng bộ máy** mà bot Discord dùng, chỉ khác cái miệng kể chuyện —
@@ -56,7 +62,13 @@ tiện để đọc thử văn phong, xem tranh và thanh ảnh trước khi d�
 ```bash
 cp .env.example .env      # dán DISCORD_TOKEN vào
 python run.py
+
+# bản Telegram — chạy song song với bản Discord được, cùng một CSDL, cùng một thế giới
+python run_tele.py        # cần TELEGRAM_TOKEN trong .env
 ```
+
+Bot Telegram tạo ở @BotFather; không cần bật inline mode — mọi thứ đi qua lệnh và nút bấm,
+`/menu` và `/help` liệt kê đủ.
 
 Trong Developer Portal nhớ bật **Message Content Intent** và **Server Members Intent**.
 Đặt `GUILD_ID` trong `.env` khi thử nghiệm để slash command hiện ra ngay (không phải chờ Discord đồng bộ toàn cục).
@@ -132,7 +144,10 @@ Mọi lệnh dùng được cả hai kiểu: `!luyentap` hoặc `/luyentap`.
 
 **Tông môn** · `monphai` · `gianhap` · `roimon` · `nhiemvu nhan|di|nop`
 
-**Đối đầu** · `thidau @người` (đối phương phải bấm *Ứng chiến*; thêm `sinhtu:true` thì thắng thua tính bằng mạng)
+**Đối đầu** · `thidau @người [cược]` (đối phương phải bấm *Ứng chiến*; cược bằng linh thạch, hai bên cùng trừ trước trận,
+thắng ăn cả; `sinhtu:true` thì thắng thua tính bằng mạng) · `tolich [số]` · `huthach`
+
+**Yêu vương** · `boss` (chiến trường; tự hiện nút *Triệu yêu vương* khi chưa có boss) · `daboss` · `bosssach` *(admin gọi đích danh từng con)*
 
 **Giao thương** · `cuahang` · `mua` · `ban` · `tang @người [vật]` · `taolinhthach @người [số]`
 
@@ -165,7 +180,22 @@ Mọi lệnh dùng được cả hai kiểu: `!luyentap` hoặc `/luyentap`.
   Linh Khí Triều Tịch, Ma Khí Nhiễu Loạn, Cổ Tích Khai Mở, Hội Võ Giang Hồ, Đại Hạn, Tinh Vẫn Giáng Thế, Huyết Nguyệt.
   Chúng nhân/chia tỉ lệ tu luyện, độ nguy hiểm, giá cả, tỉ lệ kỳ ngộ của **mọi người trong máy chủ**.
 
-### Cách một trận đánh được kể
+### Yêu vương — chiến trường của cả thế giới
+
+Trời gieo quẻ nửa canh giờ một lần; ai đến trước bấm *Triệu yêu vương*, hoặc quản trị gọi đích danh qua `!bosssach`.
+Yêu vương **hiện ra một lần cho cả thế giới**: huyết mạch riêng, không hồi phục, tới hạn thì tự mang mình về núi.
+
+* Người cảnh giới quá thấp bị chặn ngay trước cửa trận — lời kể tự nó giải thích vì sao (*đó không phải đi đánh, mà là đi nộp mình*).
+* Bị đánh nằm thì **chiến trường vẫn chờ**: dấu chân trên cát còn nguyên, hồi sức xong bấm *Đánh tiếp*.
+* Hạ được boss: mỗi người nhận đạo hạnh **theo phần công mình để lại**; ai bỏ mạng giữa chiến trường chịu thương tích nặng hơn thua PK thường.
+  Ai tranh giải mà chết thì thiên hạ còn nhớ tên lâu hơn thường lệ.
+
+### PK — thắng ăn cả, và có người làm chứng
+
+`/pk <tên> [cược]` treo lời thách lên vách đá. Tiền cược **hai bên bị trừ ngay lúc treo** — không có chuyện thắng rồi bùng.
+Đối phương bấm *Ứng chiến* (hoặc `/ungchien <mã>`) thì giao định: luật thường, hoặc *sinh tử* — thắng thua tính bằng mạng,
+và cả hai đạo tâm cùng ghi một vệt dài vào thủ ký. Khước từ thì kẻ treo thách mất một ít đạo tâm; quá hẹn không ai thưa,
+lời thách tự tan như chưa từng có.
 
 `tuchan/he/chiendau.py` không in ra sát thương. Nó tính sức chiến ngầm (cảnh giới, tầng, pháp bảo,
 công pháp tông môn, căn cốt, thương thế, đạo tâm), gieo từng hiệp, rồi chọn câu kể theo **độ chênh của hiệp đó**:
@@ -219,7 +249,8 @@ python tools/lam_thanh_anh.py dot_pha    # dựng riêng một cảnh
 ## Cấu trúc mã nguồn
 
 ```
-run.py                     điểm khởi động
+run.py                     điểm khởi động (Discord)
+run_tele.py                điểm khởi động (Telegram)
 tuchan/
   config.py                mọi con số cấu hình, kể cả hệ số co giãn thời gian
   canhgioi.py              10 cảnh giới / 61 bậc, chín khảo nghiệm, chín phẩm kim đan
@@ -233,11 +264,20 @@ tuchan/
     tuluyen · phieuluu · chiendau · luyenche · tongmon · thidau
     giaothuong · nhanvat · thienbien · thienco · ketqua
     kiepnan                chín cửa ải + chín trọng lôi kiếp
+    dauboss                chiến trường yêu vương: huyết mạch, chia công, thương tích
+    pk                     PK có cược: lời thách, ứng chiến, khước từ, sổ cái linh thạch
     thutich                bia mười bậc, Binh Khí Phổ, Đan Phổ
   cogs/                    tầng Discord, mỏng, chỉ gọi xuống he/
+  tele/                    tầng Telegram, mỏng như thế
+    long.py                lõi lệnh + điều hướng nút — không import aiogram, test được từ terminal
+    hien_thi.py            KetQua → trang HTML Telegram (markdown → tg HTML, cắt trang, caption tranh)
+    bot.py                 vỏ aiogram: slash command, gửi ảnh/video, callback nút
+    vong.py                vòng tuần tra: boss thức tỉnh/lui về, thiên biến, lời thách quá hạn
 tools/
-  mophong.py               diễn tập trong terminal
-  web_dienrap.py           diễn tập trong trình duyệt
+  mophong.py               diễn tập Discord trong terminal
+  web_dienrap.py           diễn tập Discord trong trình duyệt
+  tele_thutap.py           diễn tập Telegram trong terminal (+ --tu-dong: tự diễn, tự kiểm tra sổ sách)
+  tele_dienrap.py          diễn tập Telegram trong trình duyệt — bong bóng, nút bấm, tranh, thanh ảnh
   lam_thanh_anh.py         dựng thanh ảnh
 ```
 
