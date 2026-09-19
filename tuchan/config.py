@@ -1,5 +1,4 @@
-"""Cấu hình chung. Mọi con số ở đây là chuyện của người viết luật,
-người chơi trong thế giới sẽ không bao giờ nhìn thấy chúng."""
+"""Cấu hình Telegram Mini App và luật chơi, dùng chung cho bot và giao diện web."""
 
 from __future__ import annotations
 
@@ -19,15 +18,12 @@ DUONG_DAN_TRANH = DUONG_DAN_ASSETS / "tranh"
 DUONG_DAN_THANH_ANH = DUONG_DAN_ASSETS / "thanh_anh"
 DUONG_DAN_AM = DUONG_DAN_ASSETS / "am"
 
-TOKEN = os.getenv("DISCORD_TOKEN", "")
-TIEN_TO = os.getenv("BOT_PREFIX", "!")
 DB_PATH = os.getenv("DB_PATH", str(GOC / "data" / "tienlo.sqlite3"))
-GUILD_THU_NGHIEM = os.getenv("GUILD_ID", "")  # đồng bộ slash nhanh khi thử nghiệm
 
 # ── Telegram ──
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
-# Một thế giới, một sổ sinh tử. Bot Telegram ghi mọi tu sĩ vào "guild" này
-# để dùng chung CSDL với bot Discord nếu muốn.
+# Mã thế giới dùng chung giữa Telegram bot và Mini App.
+# Giữ tên TELE_GUILD để tương thích với sổ SQLite hiện có.
 TELE_GUILD = int(os.getenv("TELE_GUILD", "1") or 1)
 # User id được phép triệu boss / gọi thiên biến bên Telegram (phân cách bằng dấu phẩy)
 TELE_ADMIN_IDS = {int(x) for x in os.getenv("TELE_ADMIN_IDS", "").replace(" ", "").split(",") if x.strip()}

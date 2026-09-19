@@ -281,6 +281,38 @@ class Kho:
         )
         await self.conn.commit()
 
+    async def luu_bi_canh(self, ts: TuSi, vat_thuong: str | None,
+                         cho: int, nhat_ky: str) -> None:
+        """Lưu tiến độ, thưởng và hồi chiêu cùng một transaction.
+
+        Gọi trong khóa lõi Telegram: không có lần commit nhận thưởng trước khi
+        ghi tiến độ, kể cả khi tiến trình bị dừng giữa chừng.
+        """
+        try:
+            await self.conn.execute(
+                "UPDATE tu_si SET ghi_chu=?, linh_thach=?, danh_vong=?, than_the=? WHERE user_id=?",
+                (ts.ghi_chu, ts.linh_thach, ts.danh_vong, ts.than_the, ts.user_id),
+            )
+            if vat_thuong:
+                await self.conn.execute(
+                    "INSERT INTO tui_do (user_id, ma, so_luong) VALUES (?,?,1) "
+                    "ON CONFLICT(user_id, ma) DO UPDATE SET so_luong=so_luong+1",
+                    (ts.user_id, vat_thuong),
+                )
+            await self.conn.execute(
+                "INSERT INTO nguoi_lanh (user_id, viec, den_luc) VALUES (?,?,?) "
+                "ON CONFLICT(user_id, viec) DO UPDATE SET den_luc=excluded.den_luc",
+                (ts.user_id, "bicanh", int(time.time()) + cho),
+            )
+            await self.conn.execute(
+                "INSERT INTO nhat_ky (user_id, luc, loai, noi_dung) VALUES (?,?,?,?)",
+                (ts.user_id, int(time.time()), "bicanh", nhat_ky),
+            )
+            await self.conn.commit()
+        except BaseException:
+            await self.conn.rollback()
+            raise
+
     async def xoa_tu_si(self, user_id: int) -> None:
         for bang in ("tu_si", "tui_do", "so_tay", "nguoi_lanh", "nhat_ky", "viec_mon"):
             await self.conn.execute(f"DELETE FROM {bang} WHERE user_id=?", (user_id,))

@@ -1,19 +1,532 @@
 <!doctype html>
 <html lang="vi">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tiên Đồ Vô Tận</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link rel="stylesheet" href="/mong.css">
-</head>
-<body>
-  <main id="chat" aria-live="polite"></main>
-  <footer>
-    <input id="inp" placeholder="/menu" autocomplete="off" enterkeyhint="send">
-    <button id="btn" aria-label="gửi">➤</button>
-  </footer>
-  <div id="bao" hidden></div>
-  <script src="/dong.js"></script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0c1917" />
+    <meta
+      name="description"
+      content="Tiên Đồ Vô Tận — thế giới tu tiên trong Telegram. Tu luyện, vượt ải yêu vương và sưu tầm pháp bảo."
+    />
+    <title>Tiên Đồ Vô Tận · Telegram Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/mong.css" />
+  </head>
+  <body>
+    <svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <symbol id="i-mountain" viewBox="0 0 24 24">
+          <path d="m2 20 8-15 5 9 3-5 5 11H2Zm5-9 3 2 2-2M1 23h22" />
+        </symbol>
+        <symbol id="i-home" viewBox="0 0 24 24">
+          <path d="m3 10 9-7 9 7M5 10v10h14V10M2 14h20M9 20v-6h6v6M2 8h20" />
+        </symbol>
+        <symbol id="i-sword" viewBox="0 0 24 24">
+          <path
+            d="m7 15 12-12 2-1-1 5L9 17M4 12l8 8M3 21l5-5M14 13l7 8m-9-3 6-6M8 9 3 4l-1-3 4 1 5 5"
+          />
+        </symbol>
+        <symbol id="i-bag" viewBox="0 0 24 24">
+          <path
+            d="m8 3 2 5h4l2-5-4 1-4-1Zm1 5c-8 7-8 13 3 13s11-6 3-13M8 9h8M12 13v5m-2-3 2-2 2 2"
+          />
+        </symbol>
+        <symbol id="i-leaf" viewBox="0 0 24 24">
+          <path d="M4 21C5 12 13 6 21 2c1 15-6 20-15 15M8 14l6 1m-3-5V6" />
+        </symbol>
+        <symbol id="i-fire" viewBox="0 0 24 24">
+          <path
+            d="M12 2c2 6 9 8 8 14a8 8 0 0 1-16 0c0-3 2-6 4-7-1 5 3 5 4 2 1-2 0-6 0-9Z"
+          />
+        </symbol>
+        <symbol id="i-scroll" viewBox="0 0 24 24">
+          <path
+            d="M5 4h13v14M5 4a3 3 0 0 0 0 6h2V4M7 10v10h12a3 3 0 0 0 0-6h-2v6M10 8h5m-5 4h5m-5 4h3"
+          />
+        </symbol>
+        <symbol id="i-star" viewBox="0 0 24 24">
+          <path d="m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7Z" />
+        </symbol>
+        <symbol id="i-gem" viewBox="0 0 24 24">
+          <path d="m3 8 5-5h8l5 5-9 13L3 8Zm0 0h18M8 3l-1 5 5 13 5-13-1-5" />
+        </symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24">
+          <path d="M4 12h16m-6-6 6 6-6 6" />
+        </symbol>
+        <symbol id="i-bell" viewBox="0 0 24 24">
+          <path d="M6 9a6 6 0 0 1 12 0v6l3 3H3l3-3V9Zm4 12h4M12 1v2" />
+        </symbol>
+        <symbol id="i-close" viewBox="0 0 24 24">
+          <path d="m6 6 12 12M6 18 18 6" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24">
+          <path d="m5 12 5 5L20 6" />
+        </symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24">
+          <path d="M7 10V7a5 5 0 0 1 10 0v3M5 10h14v11H5V10Zm7 4v3" />
+        </symbol>
+        <symbol id="i-lotus" viewBox="0 0 24 24">
+          <path
+            d="M12 21C1 19 1 13 2 9c5 0 8 4 10 12Zm0 0c11-2 11-8 10-12-5 0-8 4-10 12Zm0-1C5 14 7 7 12 2c5 5 7 12 0 18ZM3 21h18"
+          />
+        </symbol>
+      </defs>
+    </svg>
+    <aside class="sidebar">
+      <a class="brand" href="#dong-phu" aria-label="Tiên Đồ Vô Tận — Động phủ"
+        ><span class="brand-seal"
+          ><svg><use href="#i-mountain" /></svg></span
+        ><span>TIÊN ĐỒ<small>V Ô &nbsp; T Ậ N</small></span></a
+      >
+      <div class="side-divider"><span>ĐẠO LỘ CỦA NGƯƠI</span></div>
+      <nav class="main-nav" aria-label="Điều hướng chính">
+        <button class="nav-btn active" data-page="home">
+          <svg><use href="#i-home" /></svg><span>Động phủ</span><i></i>
+        </button>
+        <button class="nav-btn" data-page="boss">
+          <svg><use href="#i-sword" /></svg><span>Ải yêu vương</span
+          ><small>7</small>
+        </button>
+        <button class="nav-btn" data-page="bag">
+          <svg><use href="#i-bag" /></svg><span>Túi càn khôn</span>
+        </button>
+        <button class="nav-btn" data-page="explore">
+          <svg><use href="#i-mountain" /></svg><span>Du ngoạn</span>
+        </button>
+        <button class="nav-btn" data-page="craft">
+          <svg><use href="#i-fire" /></svg><span>Đan phòng</span>
+        </button>
+        <button class="nav-btn" data-page="sect">
+          <svg><use href="#i-home" /></svg><span>Tông môn</span>
+        </button>
+      </nav>
+      <div class="side-divider"><span>THIÊN CƠ CÁC</span></div>
+      <nav class="secondary-nav">
+        <button data-page="codex">
+          <svg><use href="#i-scroll" /></svg>Vạn vật phổ</button
+        ><button data-command="/nhatky">
+          <svg><use href="#i-leaf" /></svg>Nhật ký tu hành</button
+        ><button data-command="/chidan">
+          <svg><use href="#i-star" /></svg>Chỉ dẫn nhập môn
+        </button>
+      </nav>
+      <div class="side-bottom">
+        <span class="seal-small"
+          ><svg><use href="#i-lotus" /></svg
+        ></span>
+        <p>Nhất niệm nhập đạo<small>Vạn dặm tiên đồ</small></p>
+        <div class="telegram-tag"><span>↗</span> TELEGRAM MINI APP</div>
+      </div>
+    </aside>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="breadcrumbs">
+          <span>Thanh Vân giới</span><b>/</b
+          ><strong id="page-crumb">Động phủ</strong>
+        </div>
+        <div class="top-tools">
+          <span class="connection" id="connection"><i></i> Đang kết nối</span
+          ><span class="wallet"
+            ><svg><use href="#i-gem" /></svg><b id="wallet-value">—</b
+            ><small>Linh thạch</small></span
+          ><button
+            class="icon-btn"
+            id="journal-open"
+            aria-label="Mở nhật ký hành động"
+          >
+            <svg><use href="#i-bell" /></svg></button
+          ><button class="avatar" id="profile-open" aria-label="Nhân vật">
+            <svg><use href="#i-mountain" /></svg>
+          </button>
+        </div>
+      </header>
+      <main id="main">
+        <div class="page-intro">
+          <div>
+            <div class="eyebrow">MỘT NIỆM TU HÀNH · MỘT ĐỜI TIÊN ĐẠO</div>
+            <h1 id="page-title">Động phủ</h1>
+            <p id="page-subtitle">
+              Gác lại hồng trần, trở về với con đường của ngươi.
+            </p>
+          </div>
+          <span class="world-tag"><i></i> Linh khí hội tụ</span>
+        </div>
+        <section id="page-home" class="page">
+          <div class="home-top">
+            <article class="hero panel">
+              <div class="hero-shade"></div>
+              <div class="hero-particles" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i><i></i>
+              </div>
+              <div class="hero-content">
+                <span class="hero-label"><span></span> TIÊN ĐỒ VÔ TẬN</span>
+                <h2>Đạo tại tâm.<br />Tiên tại ngươi.</h2>
+                <p>
+                  Một thân áo vải, một ý niệm trường sinh.<br />Con đường vạn
+                  dặm bắt đầu từ hôm nay.
+                </p>
+                <button class="btn gold" id="hero-action">
+                  <svg><use href="#i-lotus" /></svg><span>Bước vào tiên đồ</span
+                  ><svg><use href="#i-arrow" /></svg>
+                </button>
+              </div>
+              <div class="hero-foot">
+                <svg><use href="#i-leaf" /></svg
+                ><span>Thanh Vân Sơn <b>·</b> Chốn khởi nguồn tiên đạo</span
+                ><span class="hero-mark">01</span>
+              </div>
+            </article>
+            <article class="cultivation panel">
+              <div class="panel-heading">
+                <h3>Đạo hạnh</h3>
+                <span class="tiny-tag" id="cultivator-sect">TÁN TU</span>
+              </div>
+              <div class="cultivation-orb">
+                <div class="orbit orbit-one"></div>
+                <div class="orbit orbit-two"></div>
+                <span class="orb-glyph"
+                  ><svg><use href="#i-lotus" /></svg></span
+                ><span class="orbit-star">✦</span>
+              </div>
+              <h3 id="realm-name">Phàm nhân</h3>
+              <p id="character-name">Đang chờ một mối tiên duyên</p>
+              <div class="progress-label">
+                <span>Tu vi tích lũy</span
+                ><strong id="cultivation-value">Chưa nhập đạo</strong>
+              </div>
+              <div class="progress-track">
+                <i id="cultivation-progress"></i>
+              </div>
+              <button class="btn outline wide" data-command="/dotpha">
+                <svg><use href="#i-star" /></svg>Đột phá cảnh giới
+              </button>
+            </article>
+          </div>
+          <div class="quick-actions">
+            <button data-command="/luyentap" data-effect="cultivate">
+              <span class="action-icon jade"
+                ><svg><use href="#i-lotus" /></svg></span
+              ><span
+                ><strong>Tọa thiền tu luyện</strong
+                ><small id="practice-hint"
+                  >Hấp thu linh khí đất trời</small
+                ></span
+              ><svg class="trailing"><use href="#i-arrow" /></svg>
+            </button>
+            <button data-command="/duongthuong">
+              <span class="action-icon amber"
+                ><svg><use href="#i-leaf" /></svg></span
+              ><span
+                ><strong>Dưỡng thương</strong
+                ><small>Tĩnh tâm, khôi phục thân thể</small></span
+              ><svg class="trailing"><use href="#i-arrow" /></svg>
+            </button>
+            <button data-page="explore">
+              <span class="action-icon blue"
+                ><svg><use href="#i-mountain" /></svg></span
+              ><span
+                ><strong>Du ngoạn kỳ duyên</strong
+                ><small>Tìm linh thảo, gặp cơ duyên</small></span
+              ><svg class="trailing"><use href="#i-arrow" /></svg>
+            </button>
+          </div>
+          <div class="home-bottom">
+            <section class="panel boss-preview">
+              <div class="panel-heading">
+                <div>
+                  <span class="eyebrow">BÍ CẢNH THÍ LUYỆN</span>
+                  <h3>Thách thức yêu vương</h3>
+                </div>
+                <button class="text-btn" data-page="boss">
+                  Xem các ải <svg><use href="#i-arrow" /></svg>
+                </button>
+              </div>
+              <div class="boss-preview-inner">
+                <div class="boss-thumb">
+                  <img
+                    src="/tranh/tru_vuong.jpg"
+                    alt="Thiết Nha Trư Vương trong rừng Thanh Khê"
+                  /><span>ẢI 01</span>
+                </div>
+                <div class="boss-preview-copy">
+                  <span class="tag amber-text">ẢI NHẬP MÔN</span>
+                  <h3>Thiết Nha Trư Vương</h3>
+                  <p>
+                    Bóng yêu vương thức giấc giữa rừng sâu.<br />Ngươi đã sẵn
+                    sàng thử kiếm?
+                  </p>
+                  <div class="reward-mini">
+                    <img
+                      src="/tranh/vatpham/vat_lieu.svg"
+                      alt="Linh thạch"
+                    /><span>50 linh thạch</span
+                    ><img
+                      src="/tranh/vatpham/dan_duoc.svg"
+                      alt="Hồi Khí Đan"
+                    /><span>Hồi Khí Đan</span>
+                  </div>
+                  <button class="btn outline" data-page="boss">
+                    Khám phá bí cảnh <svg><use href="#i-arrow" /></svg>
+                  </button>
+                </div>
+              </div>
+            </section>
+            <section class="panel bag-preview">
+              <div class="panel-heading">
+                <div>
+                  <span class="eyebrow">HÀNH TRANG TIÊN ĐẠO</span>
+                  <h3>Túi càn khôn</h3>
+                </div>
+                <button class="text-btn" data-page="bag">
+                  Mở túi <svg><use href="#i-arrow" /></svg>
+                </button>
+              </div>
+              <div id="bag-preview-grid" class="mini-items"></div>
+              <p id="bag-preview-note" class="muted">
+                Nhập đạo để nhận hành trang đầu tiên.
+              </p>
+              <div class="bag-bottom">
+                <svg><use href="#i-scroll" /></svg
+                ><span>Mỗi vật đều mang một mối cơ duyên.</span>
+              </div>
+            </section>
+          </div>
+          <div class="quote">
+            <span>✦</span> “Đường tu tiên không hỏi xuất thân, chỉ hỏi lòng
+            người có bền.” <span>✦</span>
+          </div>
+        </section>
+        <section id="page-boss" class="page" hidden>
+          <div class="section-banner">
+            <svg><use href="#i-sword" /></svg>
+            <div>
+              <h3>Bảy cửa ải · Một con đường</h3>
+              <p>
+                Đánh bại bóng chiếu yêu vương để mở ải tiếp theo. Chiến lợi phẩm
+                nhận một lần mỗi kiếp.
+              </p>
+            </div>
+            <button class="btn outline" data-command="/boss">
+              Boss thế giới ↗
+            </button>
+          </div>
+          <div class="boss-layout">
+            <div id="stage-list" class="stage-list"></div>
+            <article id="stage-detail" class="panel stage-detail"></article>
+          </div>
+        </section>
+        <section id="page-bag" class="page" hidden>
+          <div class="toolbar">
+            <div class="filters" id="bag-filters">
+              <button class="active" data-filter="all">Tất cả</button
+              ><button data-filter="phap_bao">Pháp bảo</button
+              ><button data-filter="dan_duoc">Đan dược</button
+              ><button data-filter="duoc_lieu">Linh thảo</button
+              ><button data-filter="other">Kỳ vật & vật liệu</button>
+            </div>
+            <button class="btn outline" data-command="/cuahang">
+              Ghé phường thị ↗
+            </button>
+          </div>
+          <div class="character-vitals" id="vitals"></div>
+          <div id="inventory" class="inventory-grid"></div>
+        </section>
+        <section id="page-explore" class="page" hidden>
+          <div class="feature-landscape panel">
+            <span class="eyebrow">SƠN HÀ VẠN DẶM</span>
+            <h2>Đi qua núi sông.<br />Tìm một mối duyên.</h2>
+            <p>Thế giới ngoài động phủ có kỳ ngộ, cũng có hiểm nguy.</p>
+            <button class="btn gold" data-command="/khampha">
+              Lên đường khám phá <svg><use href="#i-arrow" /></svg>
+            </button>
+          </div>
+          <div class="quick-actions">
+            <button data-command="/timduoc">
+              <span class="action-icon jade"
+                ><svg><use href="#i-leaf" /></svg></span
+              ><span
+                ><strong>Tìm linh thảo</strong
+                ><small>Vào núi hái thuốc</small></span
+              ></button
+            ><button data-command="/troi">
+              <span class="action-icon amber"
+                ><svg><use href="#i-star" /></svg></span
+              ><span
+                ><strong>Quan thiên tượng</strong
+                ><small>Đọc biến chuyển đất trời</small></span
+              ></button
+            ><button data-command="/nhanvat">
+              <span class="action-icon blue"
+                ><svg><use href="#i-scroll" /></svg></span
+              ><span
+                ><strong>Xem bản thân</strong
+                ><small>Biết mình trước khi đi xa</small></span
+              >
+            </button>
+          </div>
+        </section>
+        <section id="page-craft" class="page" hidden>
+          <article class="feature-landscape craft-landscape panel">
+            <span class="eyebrow">ĐAN HỎA BẤT TỨC</span>
+            <h2>Một lò lửa.<br />Vạn vật hóa linh.</h2>
+            <p>Linh thảo thành đan, huyền thiết thành bảo.</p>
+            <button class="btn gold" data-command="/luyendan">
+              Mở lò luyện đan <svg><use href="#i-fire" /></svg>
+            </button>
+          </article>
+          <div class="quick-actions">
+            <button data-command="/luyenkhi">
+              <span class="action-icon amber"
+                ><svg><use href="#i-sword" /></svg></span
+              ><strong>Luyện khí</strong></button
+            ><button data-command="/sotay">
+              <span class="action-icon jade"
+                ><svg><use href="#i-scroll" /></svg></span
+              ><strong>Xem công thức</strong></button
+            ><button data-page="bag">
+              <span class="action-icon blue"
+                ><svg><use href="#i-bag" /></svg></span
+              ><strong>Kiểm tra nguyên liệu</strong>
+            </button>
+          </div>
+        </section>
+        <section id="page-sect" class="page" hidden>
+          <article class="feature-landscape sect-landscape panel">
+            <span class="eyebrow">ĐỒNG MÔN ĐỒNG ĐẠO</span>
+            <h2>Một người tu đạo.<br />Vạn người thành tông.</h2>
+            <p>Tìm một nơi truyền đạo, một lời thề để giữ.</p>
+            <button class="btn gold" data-command="/monphai">
+              Tìm hiểu tông môn <svg><use href="#i-arrow" /></svg>
+            </button>
+          </article>
+          <div class="quick-actions">
+            <button data-command="/nhiemvu">
+              <span class="action-icon jade"
+                ><svg><use href="#i-scroll" /></svg></span
+              ><strong>Gặp vị chấp sự</strong></button
+            ><button data-command="/nhanvat">
+              <span class="action-icon amber"
+                ><svg><use href="#i-gem" /></svg></span
+              ><strong>Xem thân phận</strong></button
+            ><button data-command="/bangpk">
+              <span class="action-icon blue"
+                ><svg><use href="#i-star" /></svg></span
+              ><strong>Bảng tỉ thí</strong>
+            </button>
+          </div>
+        </section>
+        <section id="page-codex" class="page" hidden>
+          <div class="toolbar">
+            <p class="muted">
+              Vật phẩm trong thế giới · Không phải đồ đang sở hữu
+            </p>
+            <input
+              id="item-search"
+              type="search"
+              placeholder="Tìm tên vật phẩm…"
+              aria-label="Tìm vật phẩm"
+            />
+          </div>
+          <div id="codex" class="inventory-grid"></div>
+        </section>
+        <footer class="page-footer">
+          <span>TIÊN ĐỒ VÔ TẬN</span
+          ><span>Tu tâm · Luyện đạo · Vấn trường sinh</span
+          ><button id="motion-toggle" aria-pressed="true">Hiệu ứng: Bật</button>
+        </footer>
+      </main>
+    </div>
+    <nav class="mobile-nav" aria-label="Điều hướng điện thoại">
+      <button class="active" data-page="home">
+        <svg><use href="#i-home" /></svg>Động phủ</button
+      ><button data-page="boss">
+        <svg><use href="#i-sword" /></svg>Ải boss</button
+      ><button data-page="bag">
+        <svg><use href="#i-bag" /></svg>Túi đồ</button
+      ><button data-page="explore">
+        <svg><use href="#i-mountain" /></svg>Du ngoạn</button
+      ><button id="mobile-more">
+        <svg><use href="#i-scroll" /></svg>Thêm
+      </button>
+    </nav>
+    <dialog id="register-dialog">
+      <button class="dialog-close icon-btn" data-close aria-label="Đóng">
+        <svg><use href="#i-close" /></svg></button
+      ><span class="eyebrow">TRƯỚC CỬA ĐẠO</span>
+      <h2>Khai danh nhập thế</h2>
+      <p class="muted">Mỗi con đường đều bắt đầu từ một cái tên.</p>
+      <form id="register-form">
+        <label
+          >Đạo hiệu<input
+            name="name"
+            maxlength="24"
+            minlength="2"
+            required
+            placeholder="Nhập đạo hiệu của ngươi…"
+            autocomplete="nickname" /></label
+        ><label>Xuất thân<select id="origin" name="origin"></select></label>
+        <p id="origin-description" class="origin-description"></p>
+        <label
+          >Giới tính<select name="gender">
+            <option value="nam">Nam</option>
+            <option value="nu">Nữ</option>
+          </select></label
+        >
+        <p id="register-error" role="alert"></p>
+        <button class="btn gold wide" type="submit">
+          Bước vào tiên đồ <svg><use href="#i-arrow" /></svg>
+        </button>
+      </form>
+      <small class="muted" id="register-mode"></small>
+    </dialog>
+    <dialog id="item-dialog"></dialog>
+    <dialog id="more-dialog">
+      <button class="dialog-close icon-btn" data-close aria-label="Đóng">
+        ×
+      </button>
+      <h2>Thiên cơ các</h2>
+      <div class="more-links">
+        <button data-page="craft">Đan phòng</button
+        ><button data-page="sect">Tông môn</button
+        ><button data-page="codex">Vạn vật phổ</button
+        ><button data-command="/nhatky">Nhật ký tu hành</button
+        ><button data-command="/chidan">Chỉ dẫn nhập môn</button>
+      </div>
+    </dialog>
+    <dialog id="journal-dialog" class="journal-dialog">
+      <div class="journal-heading">
+        <div>
+          <span class="eyebrow">TỪNG BƯỚC TIÊN ĐỒ</span>
+          <h2>Chuyện trên đường tu</h2>
+        </div>
+        <button class="icon-btn" data-close aria-label="Đóng nhật ký">
+          <svg><use href="#i-close" /></svg>
+        </button>
+      </div>
+      <div id="chat" aria-live="polite">
+        <div class="chat-empty">
+          <svg><use href="#i-scroll" /></svg>
+          <p>Những câu chuyện của ngươi sẽ được ghi lại tại đây.</p>
+        </div>
+      </div>
+      <form id="command-form">
+        <input
+          id="inp"
+          placeholder="Nhập lời đáp hoặc /menu…"
+          aria-label="Lệnh hoặc lời đáp"
+          maxlength="500"
+          autocomplete="off"
+        /><button class="btn gold" id="btn" aria-label="Gửi">
+          <svg><use href="#i-arrow" /></svg>
+        </button>
+      </form>
+    </dialog>
+    <div id="bao" role="status" hidden></div>
+    <div id="action-effect" aria-hidden="true"></div>
+    <script src="/dong.js"></script>
+  </body>
 </html>

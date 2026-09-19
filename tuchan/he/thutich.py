@@ -1,7 +1,7 @@
 """Thư tịch — mấy quyển sách trong Tàng Kinh Các mà ai cũng được mở.
 
 Bia mười bậc, sổ chín cửa ải, Binh Khí Phổ, Đan Phổ, và một tờ giấy chép về
-chín phẩm kim đan. Cùng một bộ chữ này được dùng cho cả bot Discord lẫn diễn rạp web.
+chín phẩm kim đan. Cùng một bộ chữ này được dùng cho bot Telegram và Mini App.
 """
 
 from __future__ import annotations

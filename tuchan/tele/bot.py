@@ -27,7 +27,7 @@ log = logging.getLogger("tien.tele")
 router = Router()
 
 CAC_LENH_MENU = [
-    ("start", "mở menu, xem mình tới đâu"),
+    ("start", "mở Tiên Đồ · Telegram Mini App"),
     ("dangky", "nhập đạo"),
     ("menu", "bảng điều lệnh"),
     ("nhanvat", "nhìn lại chính mình"),
@@ -53,6 +53,7 @@ class LoTelegram(Lo):
     """Gửi Trang xuống Telegram: chữ thường → sendMessage; ảnh → sendPhoto;
     video → sendVideo (kèm chữ). Nút → InlineKeyboard."""
 
+    MA_NGUON = "telegram"
     MA_URL_NUT = True  # lớp này biết render nút "url:" thành lối vào Mini App
 
     def __init__(self, bot: Bot):
@@ -129,7 +130,7 @@ async def mo_dong(bot: Bot, kho: Kho, url: str) -> None:
     còn bấm tiếp, ai chưa kịp thấy thì `/mini` là chìa khóa dự phòng."""
     try:
         await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(
-            text="Vào động", web_app=WebAppInfo(url=url)))
+            text="Chơi Tiên Đồ", web_app=WebAppInfo(url=url)))
     except Exception as e:  # pragma: no cover
         log.warning("Không dựng được nút menu: %s", e)
     from .hien_thi import Trang
@@ -137,17 +138,20 @@ async def mo_dong(bot: Bot, kho: Kho, url: str) -> None:
         "<b>⛩ Cửa động vừa mở.</b>\n\n"
         "Sau lưng núi có một cái động khô, đặt sẵn bàn đá và đèn dầu. Ai lười gõ lệnh "
         "thì vào đó ngồi — cũng chính thế giới này, cũng chính sổ sách này, chỉ khác "
-        "ngươi bấm tay thay vì gõ. Cửa sẽ khép khi trời sáng; hẹn qua <code>/menu</code>."
+        "ngươi bấm tay thay vì gõ. Tu luyện, vượt ải yêu vương, tìm pháp bảo ngay trong Mini App."
     ), anh="bia_tien_do.png",
         hang=[[("🏮 Vào động", "url:" + url)]])
     bia = duong_dan_anh("bia_tien_do.png")
+    kb = LoTelegram(bot)._kb(trang.hang)
     for uid, chat in await kho.danh_thiep_all():
+        if uid < 0:
+            continue  # Phiên khách web không có hộp thư Telegram.
         try:
             if bia is not None:
                 await bot.send_photo(chat, photo=FSInputFile(str(bia)),
-                                     caption=trang.html, parse_mode="HTML")
+                                     caption=trang.html, parse_mode="HTML", reply_markup=kb)
             else:
-                await bot.send_message(chat, trang.html, parse_mode="HTML")
+                await bot.send_message(chat, trang.html, parse_mode="HTML", reply_markup=kb)
         except Exception as e:  # pragma: no cover
             log.debug("lời mời tới %s fail: %s", uid, e)
 
@@ -166,7 +170,7 @@ async def xu_ly_text(message: Message, core: Long) -> None:
     tin = TinDen(user_id=user.id, chat_id=message.chat.id,
                  ten=user.full_name or user.username or "ai đó",
                  loai="lenh" if text.startswith(("/", "!")) else "text",
-                 data=text, msg_id=message.message_id)
+                 data=text, msg_id=message.message_id, nguon="telegram")
     await core.xu_ly(tin)
 
 
@@ -174,7 +178,7 @@ async def xu_ly_text(message: Message, core: Long) -> None:
 async def xu_ly_nut(cb: CallbackQuery, core: Long) -> None:
     tin = TinDen(user_id=cb.from_user.id, chat_id=cb.message.chat.id,
                  ten=cb.from_user.full_name or "ai đó",
-                 loai="cb", data=cb.data or "", msg_id=cb.message.message_id)
+                 loai="cb", data=cb.data or "", msg_id=cb.message.message_id, nguon="telegram")
     await core.xu_ly(tin)
     try:
         await cb.answer()
@@ -213,7 +217,7 @@ async def chay(kho: Kho | None = None, lo_them=None, gan_core=None) -> None:
     except Exception as e:  # pragma: no cover
         log.warning("Không đăng ký được menu lệnh: %s", e)
     try:
-        await bot.set_my_description("Tiên Đồ Vô Tận — tu chân bằng chữ, có đánh boss và PK.")
+        await bot.set_my_description("Tiên Đồ Vô Tận — Telegram Mini App tu tiên: động phủ, ải yêu vương, pháp bảo và kỳ duyên.")
     except Exception:
         pass
     if config.TELE_MINIAPP_URL:
@@ -225,6 +229,7 @@ async def chay(kho: Kho | None = None, lo_them=None, gan_core=None) -> None:
         await dp.start_polling(bot, allowed_updates=["message", "callback_query"])
     finally:
         vong_tai.cancel()
+        await asyncio.gather(vong_tai, return_exceptions=True)
         if tu_kho:
             await kho.dong()
         await bot.session.close()

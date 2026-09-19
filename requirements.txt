@@ -1,8 +1,5 @@
-# bot Discord
-discord.py>=2.3,<3
+# Telegram Mini App và bot
 aiosqlite>=0.19
 python-dotenv>=1.0
-# bot Telegram (tuchan/tele/)
 aiogram>=3.20,<4
-# hai chiếu diễn tập trong tools/
 aiohttp>=3.9

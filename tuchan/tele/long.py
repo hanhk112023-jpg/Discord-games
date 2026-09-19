@@ -8,7 +8,9 @@ tools/tele_thutap.py mà không cần mạng.
 
 from __future__ import annotations
 
+import asyncio
 import random
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 
 from .. import config
@@ -34,6 +36,9 @@ from ..he.thienco import he_so_the_gioi
 from .hien_thi import Trang, dinh_dang, xuat
 
 
+NGUON_TIN = ContextVar("nguon_tin", default="")
+
+
 def _dong(nut: list, moi_hang: int) -> list[list]:
     """Xếp danh sách nút [(label, cb), ...] thành các hàng."""
     return [nut[i:i + moi_hang] for i in range(0, len(nut), moi_hang)] or []
@@ -48,6 +53,7 @@ class TinDen:
     loai: str                       # "lenh" | "cb" | "text"
     data: str = ""
     msg_id: int | None = None       # tin chứa nút — để sửa thay vì gửi mới
+    nguon: str = ""                # mini | telegram; rỗng cho diễn tập/thông báo
 
 
 @dataclass
@@ -77,10 +83,11 @@ class Lo:
 
 
 class LoNhip(Lo):
-    """Miệng ghép: một câu chuyện kể ra là vào cả phòng chat Telegram lẫn cửa động.
+    """Một lõi, hai giao diện. Trả lời/sửa tin chỉ về đúng nơi phát sinh lệnh.
 
-    Mỗi vận chuyển giữ phiếu tin của riêng mình; tin sửa chỉ tới được nơi sinh ra nó,
-    bên kia đứng ngoài cuộc — ai sửa không được thì đọc tin cũ, chẳng mất gì."""
+    Mã tin Telegram và web độc lập, không được dùng lẫn. Thông báo cho người
+    khác và vòng tuần tra vẫn phát qua cả hai giao diện.
+    """
 
     def __init__(self, *los: Lo):
         self.cac = [l for l in los if l is not None]
@@ -89,9 +96,20 @@ class LoNhip(Lo):
     def MA_URL_NUT(self) -> bool:  # ai trong tốp biết render nút url: là được
         return any(getattr(l, "MA_URL_NUT", False) for l in self.cac)
 
+    def _noi_nhan(self):
+        nguon = NGUON_TIN.get()
+        return [lo for lo in self.cac if not nguon or getattr(lo, "MA_NGUON", "") == nguon]
+
+    async def gui_tat_ca(self, chat_id: int, trang):
+        token = NGUON_TIN.set("")
+        try:
+            return await self.gui(chat_id, trang)
+        finally:
+            NGUON_TIN.reset(token)
+
     async def gui(self, chat_id: int, trang) -> int | None:
         thu = None
-        for l in self.cac:
+        for l in self._noi_nhan():
             try:
                 ma = await l.gui(chat_id, trang)
                 thu = thu if thu is not None else ma
@@ -100,14 +118,14 @@ class LoNhip(Lo):
         return thu
 
     async def sua(self, chat_id: int, msg_id, trang) -> None:
-        for l in self.cac:
+        for l in self._noi_nhan():
             try:
                 await l.sua(chat_id, msg_id, trang)
             except Exception:
                 continue
 
     async def bao(self, user_id: int, text: str) -> None:
-        for l in self.cac:
+        for l in self._noi_nhan():
             try:
                 await l.bao(user_id, text)
             except Exception:
@@ -134,6 +152,7 @@ class Long:
         self.rng = rng or random.Random()
         self.thu_duyen = thu_duyen
         self.admin_ids = set(admin_ids or ())
+        self.khoa_lenh = asyncio.Lock()
         self.pending: dict[int, dict] = {}
         self.Lenh: dict[str, tuple] = {}
         self._dang_ky_lenh()
@@ -141,6 +160,15 @@ class Long:
     # ─────────── cổng vào duy nhất ───────────
 
     async def xu_ly(self, tin: TinDen) -> None:
+        # Bot và Mini App cùng một khóa: bấm đúp không nhận thưởng hai lần.
+        async with self.khoa_lenh:
+            token = NGUON_TIN.set(tin.nguon)
+            try:
+                await self._xu_ly(tin)
+            finally:
+                NGUON_TIN.reset(token)
+
+    async def _xu_ly(self, tin: TinDen) -> None:
         await self.kho.danh_thiep_luu(tin.user_id, tin.chat_id, tin.ten or "")
         if tin.loai == "cb":
             await self._xu_ly_nut(tin)
@@ -239,6 +267,7 @@ class Long:
         D("roimon", _lenh_roimon, "xin ra đi", True, ("roi",))
         D("nhiemvu", _lenh_nhiemvu, "chấp sự đường", True, ("vm",))
         D("boss", _lenh_boss, "xem chiến trường yêu vương", True, ("chientruong", "ct"))
+        D("bicanh", _lenh_bicanh, "vượt ải huyễn cảnh cá nhân", True)
         D("daboss", _lenh_daboss, "lao vào đánh boss", True, ("danhboss",))
         D("bosssach", _lenh_bosssach, "điểm danh yêu vương", True)
         D("trieuboss", _lenh_trieuboss, "triệu hồi yêu vương (đại năng)", True, ("goiboss",))
@@ -275,7 +304,7 @@ class Long:
             return
         for trang in xuat(kq, hang):
             try:
-                await self.lo.gui(chat, trang)
+                await getattr(self.lo, "gui_tat_ca", self.lo.gui)(chat, trang)
             except Exception:
                 pass
 
@@ -288,7 +317,7 @@ class Long:
                 continue
             da_gui.add(chat)
             try:
-                await self.lo.gui(chat, Trang(html=html))
+                await getattr(self.lo, "gui_tat_ca", self.lo.gui)(chat, Trang(html=html))
             except Exception:
                 pass
 
@@ -301,7 +330,10 @@ class Long:
             kq.them("Ngươi đứng dưới chân núi. Trong túi không có gì ngoài một cái tên, "
                     "trên đầu không có gì ngoài một bầu trời quá rộng.\n\n"
                     "Bấm **Nhập đạo** để bắt đầu.")
-            return TraLoi.cua(kq, [[("🧘 Nhập đạo", "l:dangky"), ("📜 Nghe chỉ dẫn", "l:chidan")]])
+            hang = [[("🧘 Nhập đạo", "l:dangky"), ("📜 Nghe chỉ dẫn", "l:chidan")]]
+            if config.TELE_MINIAPP_URL and getattr(self.lo, "MA_URL_NUT", False):
+                hang.insert(0, [("⛩ Chơi Tiên Đồ · Mini App", "url:" + config.TELE_MINIAPP_URL)])
+            return TraLoi.cua(kq, hang)
         ghi = ""
         if ts.dang_bi_thuong:
             ghi = "\n*Thương thế còn chưa lành — nhớ dưỡng thương.*"
@@ -318,7 +350,7 @@ class Long:
             [("🕯 Chuyển thế", "l:chuyenthe"), ("🪧 Bia cảnh giới", "l:canhgioi"), ("📜 Chỉ dẫn", "l:chidan")],
         ]
         if config.TELE_MINIAPP_URL and getattr(self.lo, "MA_URL_NUT", False):
-            hang.append([("⛩ Vào động — lối web", "url:" + config.TELE_MINIAPP_URL)])
+            hang.insert(0, [("⛩ Chơi Tiên Đồ · Mini App", "url:" + config.TELE_MINIAPP_URL)])
         return TraLoi.cua(kq, hang)
 
     async def _chua_nhap_dao(self, tin: TinDen) -> TraLoi:
@@ -1226,3 +1258,9 @@ async def _lenh_chuyenthe(core, tin, ts, arg):
                 van=["Trong chỗ tối, một cái tên cũ vừa mờ đi. Trời cho ngươi một tờ giấy trắng "
                      "và đúng một câu hỏi: **kiếp này ngươi từ đâu tới?**"])
     return TraLoi.cua(kq, hang)
+
+
+async def _lenh_bicanh(core, tin, ts, arg):
+    from ..he import bicanh
+    kq = await bicanh.vuot_ai(core.kho, ts, arg, core.rng)
+    return TraLoi.cua(kq)
