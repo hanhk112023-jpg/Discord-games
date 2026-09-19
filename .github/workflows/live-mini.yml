@@ -114,7 +114,7 @@ jobs:
           J='Content-Type: application/json'; CK=/tmp/ck
           rm -f $CK
           curl -sf -c $CK -X POST localhost:8080/vao -H "$J" -d '{}' > /dev/null
-          curl -sf -b $CK -X POST localhost:8080/gui -H "$J" -d '{"text":"/dangky kẻ thử lửa"}' > /dev/null
+          curl -sf -b $CK -X POST localhost:8080/gui -H "$J" -d '{"text":"/dangky Kẻ Thử Lửa"}' > /dev/null
           curl -sf -b $CK -X POST localhost:8080/nut  -H "$J" -d '{"nut":"xt:tan_tu_lang_bac"}' > /dev/null
           curl -sf -b $CK -X POST localhost:8080/nut  -H "$J" -d '{"nut":"gt:nam"}' > /dev/null
           curl -sf -b $CK -X POST localhost:8080/gui -H "$J" -d '{"text":"Kẻ Thử Lửa"}' > /dev/null
