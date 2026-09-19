@@ -48,22 +48,22 @@ def _giay(x: float) -> int:
 HE_SO_GIAY = _HE_SO  # cho các modul khác tự quy đổi thời gian thô sang "giờ diễn tập"
 
 
-# Khoảng cách giữa các lần hành công (giây thực)
+# Khoảng cách giữa các lần hành công (giây thực) — đã tối ưu cho lối chơi tu luyện & chiến đấu liên tục
 NGUOI_LANH = {
-    "luyentap": _giay(60 * 60),
-    "thiennhien": _giay(3 * 60 * 60),
-    "khampha": _giay(30 * 60),
-    "timduoc": _giay(20 * 60),
-    "duykysi": _giay(15 * 60),
-    "nhiemvu": _giay(2 * 60 * 60),
-    "thidau": _giay(10 * 60),
-    "daboss": _giay(12 * 60),   # một lần lao vào chiến trường cách nhau chừng này
-    "luyendan": _giay(5 * 60),
-    "luyenkhi": _giay(30 * 60),
+    "luyentap": _giay(10),
+    "thiennhien": _giay(30),
+    "khampha": _giay(5),
+    "timduoc": _giay(10),
+    "duykysi": _giay(10),
+    "nhiemvu": _giay(30),
+    "thidau": _giay(10),
+    "daboss": _giay(30),
+    "luyendan": _giay(10),
+    "luyenkhi": _giay(10),
 }
 
-# Thời gian dưỡng thương khi trọng thương (giây)
-DUONG_THUONG_TOI_DA = _giay(6 * 60 * 60)
+# Thời gian dưỡng thương khi trọng thương (giây) — giảm ngắn để không cản trở chiến đấu
+DUONG_THUONG_TOI_DA = _giay(15)
 
 # ── đại chiến yêu vương (boss) ──
 BOSS_THOI_HAN = _giay(50 * 60)     # yêu vương hiện thế tối đa bấy lâu, quá thì rút về

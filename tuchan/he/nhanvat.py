@@ -76,88 +76,53 @@ async def xem_nhan_vat(kho, ts, hs: dict | None = None) -> KetQua:
     cg = canh_gioi(ts.canh_gioi)
     xt = dl_xuatthan.lay(ts.xuat_than)
     mp = dl_monphai.lay(ts.mon_phai) if ts.mon_phai else None
-    tui = dict(await kho.tui(ts.user_id))
-    if ts.phap_bao and tui.get(ts.phap_bao):
-        tui[ts.phap_bao] -= 1
-        if tui[ts.phap_bao] <= 0:
-            tui.pop(ts.phap_bao)
-    so_tay = await kho.so_tay(ts.user_id)
+    cs = ts.tinh_chi_so()
+    tb = ts.lay_trang_bi()
+    ch = ts.lay_cuong_hoa()
 
-    kq = KetQua(tieu_de=ts.ten, anh=cg.tranh or "bia_tien_do.png")
-    ngay = max(1, (int(time.time()) - (ts.nhap_dao_luc or int(time.time()))) // 86400)
+    kq = KetQua(tieu_de=f"Hồ sơ tu sĩ — {ts.ten}", anh=cg.tranh or "bia_tien_do.png")
+
+    kq.them(f"👤 **Đạo hiệu:** {ts.ten} | **Môn phái:** {mp.ten if mp else 'Tán Tu'}")
+    kq.them(f"🌀 **Cảnh giới:** **{ten_canh_gioi(ts.canh_gioi, ts.tang)}** ({cg.ten})")
+    pt = min(100.0, round(ts.tu_vi / max(1, cs['tu_vi_can']) * 100, 1))
+    kq.them(f"✨ **Tu vi:** `{ts.tu_vi:,} / {cs['tu_vi_can']:,}` ({pt}%) | ⚡ **Tốc độ:** `+{cs['tu_vi_sec']} tu vi/s`")
+    kq.them(f"⚔️ **LỰC CHIẾN:** **{cs['luc_chien']:,}**")
 
     kq.them(
-        f"**{ts.ten}** — {ten_canh_gioi(ts.canh_gioi, ts.tang)}. "
-        + (f"Đệ tử {mp.ten}, {dl_monphai.chuc_vi_theo_cong_hien(ts.cong_hien)}." if mp
-           else "Tán tu, không cửa không thầy.")
+        f"📊 **BẢNG THUỘC TÍNH CHIẾN ĐẤU:**\n"
+        f"• ❤️ Khí Huyết (HP): `{cs['hp']:,} / {cs['hp_max']:,}`\n"
+        f"• 🔷 Chân Khí (MP): `{cs['mp']:,} / {cs['mp_max']:,}`\n"
+        f"• 🗡️ Công Kích: `{cs['cong']:,}`\n"
+        f"• 🛡️ Phòng Ngự: `{cs['thu']:,}`\n"
+        f"• 💥 Bạo Kích: `{cs['bao_kich']}%`\n"
+        f"• 💨 Thân Pháp: `{cs['toc_do']}`\n"
+        f"• 🧘 Căn Cốt: `{ts.can_cot}` | Tư Chất: `{ts.tu_chat}` | Đạo Tâm: `{ts.dao_tam}`"
     )
-    if xt:
-        kq.them(f"Xuất thân {xt.ten.lower()}. {xt.linh_can}.")
-    kq.them(cg.than_the.capitalize() + ". " + cg.cam_ngo.capitalize() + ".")
-    kq.them(mo_ta_tang(ts.canh_gioi, ts.tang))
-    kq.them(mo_ta_dao_hanh(ts.canh_gioi, ts.tang, ts.tu_vi))
-    if ts.dan_pham:
-        kq.them(
-            f"Trong đan điền ngươi có một viên kim đan **{ten_dan_pham(ts.dan_pham)}**. "
-            + mo_ta_dan_pham(ts.dan_pham)
-        )
-    if ts.dang_an_tuc:
-        kq.them(
-            "Khí tức trên người ngươi hiện đang bị dược lực che kín. Người qua đường nhìn ngươi "
-            "cũng chỉ thấy một kẻ áo vải bình thường — và đó đúng là điều ngươi muốn."
-        )
-    if ts.buff_ho_kiep:
-        kq.them(
-            "Dưới da ngươi còn đọng một lớp dược lực hộ thể, im lìm, chờ tới lần trời giáng tai xuống."
-        )
-    kq.them(mo_ta_than_the(ts.than_the, ts.dang_bi_thuong, ts.con_bao_lau_duong_thuong))
-    kq.them(mo_ta_dao_tam(ts.dao_tam))
-    sat = mo_ta_sat_nghiep(ts.sat_nghiep)
-    if sat:
-        kq.them(sat)
-    kq.them(mo_ta_danh_vong(ts.danh_vong, ts.sat_nghiep))
-    kq.them(mo_ta_phap_bao(ts.phap_bao))
 
-    duoc = liet_ke_tui(tui, "duoc_lieu")
-    lieu = liet_ke_tui(tui, "vat_lieu")
-    dan = liet_ke_tui(tui, "dan_duoc")
-    bao = liet_ke_tui(tui, "phap_bao")
-    ky = liet_ke_tui(tui, "ky_vat") or ""
-    phan = []
-    if duoc:
-        phan.append(f"Dược liệu: {duoc}.")
-    if lieu:
-        phan.append(f"Vật liệu: {lieu}.")
-    if dan:
-        phan.append(f"Đan dược: {dan}.")
-    if bao:
-        phan.append(f"Pháp bảo cất trong túi: {bao}.")
-    if ky:
-        phan.append(f"Vật khác: {ky}.")
-    if phan:
-        kq.them("Trong túi càn khôn: " + " ".join(phan))
+    # Trang bị
+    slot_names = {"vu_khi": "Vũ Khí", "giap": "Chiến Giáp", "phap_bao": "Pháp Bảo", "ngoc_boi": "Ngọc Bội"}
+    ds_tb = []
+    for s_k, s_v in slot_names.items():
+        ma = tb.get(s_k)
+        if ma and vatpham.lay(ma):
+            vp = vatpham.lay(ma)
+            cap = ch.get(ma, 0)
+            cap_str = f" (+{cap})" if cap > 0 else ""
+            ds_tb.append(f"• **{s_v}:** {vp.ten}{cap_str}")
+        else:
+            ds_tb.append(f"• **{s_v}:** *(Trống)*")
+    kq.them("🛡️ **TRANG BỊ ĐANG MANG:**\n" + "\n".join(ds_tb))
+
+    kq.them(
+        f"💎 **Tài phú:** `{ts.linh_thach:,}` Linh Thạch | **Danh vọng:** `{ts.danh_vong:,}`\n"
+        f"🏆 **Chiến tích:** Thắng `{ts.so_tran_thang}` trận | Thua `{ts.so_tran_thua}` trận | Vượt Tháp tầng `{ts.thap_tang()}`"
+    )
+
+    if ts.dang_bi_thuong:
+        kq.them(f"⚠️ **Trạng thái:** Bị thương nhẹ, vận khí điều tức còn `{ts.con_bao_lau_duong_thuong}` giây để hồi phục!")
     else:
-        kq.them("Túi càn khôn trống trơn. Ngươi sờ vào trong đó và chỉ chạm phải lớp vải.")
+        kq.them("💚 **Trạng thái:** Khí huyết sung mãn, sẵn sàng xuất chiến!")
 
-    kq.them(mo_ta_linh_thach(ts.linh_thach))
-
-    if so_tay:
-        ten_ct = [dl_congthuc.lay(m).ten for m in so_tay if dl_congthuc.lay(m)]
-        kq.them("Thứ ngươi thuộc nằm lòng: " + ", ".join(ten_ct) + ".")
-
-    kq.them(mo_ta_tho_nguyen(ngay, ts.canh_gioi))
-    kq.them(
-        f"Ngươi đã đi trên con đường này {ngay} ngày. "
-        + (f"Trong đó có {ts.so_lan_dot_pha} lần ngươi ngồi xuống với ý định không đứng dậy được nữa."
-           if ts.so_lan_dot_pha else "Ngươi còn chưa từng thử xung quan lần nào.")
-    )
-    if ts.so_tran_thang or ts.so_tran_thua:
-        kq.them(
-            f"Trong giang hồ, ngươi đã đứng dậy sau {ts.so_tran_thang} lần thắng "
-            f"và {ts.so_tran_thua} lần bị đánh nằm. Không ai đếm hộ ngươi những con số ấy — ngươi tự nhớ."
-        )
-    if hs and hs.get("_dang_dien"):
-        kq.them("*Trời đất mấy hôm nay không yên. Ngươi cảm nhận được điều đó ngay trong hơi thở của mình.*")
     return kq
 
 

@@ -25,6 +25,54 @@ class VatPham:
     def ten_pham(self) -> str:
         return f"{self.pham} phẩm"
 
+    @property
+    def slot_trang_bi(self) -> str:
+        if self.loai != "phap_bao" and self.ma != "long_van_ngoc":
+            return ""
+        if self.loai_vu_khi in ("kiem", "dao", "thuong", "phi_kiem", "cung", "chuy"):
+            return "vu_khi"
+        if self.loai_vu_khi == "giap":
+            return "giap"
+        if self.ma == "long_van_ngoc" or self.loai_vu_khi in ("ti",):
+            return "ngoc_boi"
+        return "phap_bao"
+
+    @property
+    def chi_so_cong(self) -> int:
+        if self.slot_trang_bi == "vu_khi":
+            return int(25 * self.pham * (1.0 + self.uy_luc))
+        if self.slot_trang_bi == "phap_bao":
+            return int(15 * self.pham * (1.0 + self.uy_luc))
+        return 0
+
+    @property
+    def chi_so_thu(self) -> int:
+        if self.slot_trang_bi == "giap":
+            return int(20 * self.pham * (1.0 + self.uy_luc))
+        if self.slot_trang_bi == "phap_bao":
+            return int(10 * self.pham * (1.0 + self.uy_luc))
+        return 0
+
+    @property
+    def chi_so_hp(self) -> int:
+        if self.slot_trang_bi == "giap":
+            return int(100 * self.pham * (1.0 + self.uy_luc))
+        if self.slot_trang_bi == "ngoc_boi":
+            return int(150 * self.pham * (1.0 + self.uy_luc))
+        return 0
+
+    @property
+    def chi_so_bao_kich(self) -> float:
+        if self.slot_trang_bi == "vu_khi":
+            return round(self.pham * 1.5, 1)
+        return 0.0
+
+    @property
+    def chi_so_toc_do(self) -> int:
+        if self.slot_trang_bi in ("ngoc_boi", "vu_khi"):
+            return int(5 * self.pham)
+        return 0
+
 
 def _vp(*a, **kw) -> VatPham:
     return VatPham(*a, **kw)

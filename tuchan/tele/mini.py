@@ -245,6 +245,220 @@ class Dong:
         async with self.core.khoa_lenh:
             return web.json_response(await lay(self.kho, uid), headers={"Cache-Control": "no-store"})
 
+    async def api_tu_luyen(self, request: web.Request) -> web.Response:
+        from ..he import tuluyen
+        uid, _ = self.uid_cua(request)
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            kq = await tuluyen.luyen_tap(self.kho, ts, self.core.rng, await self.core.hs())
+            return web.json_response({
+                "ok": True,
+                "thanh_cong": kq.thanh_cong,
+                "tieu_de": kq.tieu_de,
+                "van": kq.van,
+                "du_lieu": kq.du_lieu,
+            })
+
+    async def api_dot_pha(self, request: web.Request) -> web.Response:
+        from ..he import tuluyen
+        uid, _ = self.uid_cua(request)
+        body = await self._json(request)
+        dung_dan = body.get("dung_dan")
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            kq = await tuluyen.dot_pha(self.kho, ts, self.core.rng, await self.core.hs(), dung_dan)
+            return web.json_response({
+                "ok": True,
+                "thanh_cong": kq.thanh_cong,
+                "tieu_de": kq.tieu_de,
+                "van": kq.van,
+                "du_lieu": kq.du_lieu,
+            })
+
+    async def api_san_quai(self, request: web.Request) -> web.Response:
+        from ..he import sanquai
+        uid, _ = self.uid_cua(request)
+        body = await self._json(request)
+        ma_quai = body.get("ma_quai", "")
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            kq = await sanquai.san_quai(self.kho, ts, ma_quai, self.core.rng)
+            return web.json_response({
+                "ok": True,
+                "thanh_cong": kq.thanh_cong,
+                "tieu_de": kq.tieu_de,
+                "van": kq.van,
+                "thang": kq.du_lieu.get("thang", False),
+                "hiep_dau": kq.du_lieu.get("hiep_dau", []),
+            })
+
+    async def api_tran_thap(self, request: web.Request) -> web.Response:
+        from ..he import sanquai
+        uid, _ = self.uid_cua(request)
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            kq = await sanquai.vuot_thap(self.kho, ts, self.core.rng)
+            return web.json_response({
+                "ok": True,
+                "thanh_cong": kq.thanh_cong,
+                "tieu_de": kq.tieu_de,
+                "van": kq.van,
+                "thang": kq.du_lieu.get("thang", False),
+                "tang": kq.du_lieu.get("tang", 1),
+                "hiep_dau": kq.du_lieu.get("hiep_dau", []),
+            })
+
+    async def api_trang_bi(self, request: web.Request) -> web.Response:
+        from ..data import vatpham
+        uid, _ = self.uid_cua(request)
+        body = await self._json(request)
+        ma = body.get("ma", "")
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            vp = vatpham.lay(ma)
+            if not vp:
+                return web.json_response({"ok": False, "loi": "Vật phẩm không tồn tại."}, status=400)
+            slot = vp.slot_trang_bi
+            if not slot:
+                return web.json_response({"ok": False, "loi": "Vật phẩm này không thể trang bị."}, status=400)
+            so = await self.kho.dem_vat(uid, ma)
+            if so <= 0:
+                return web.json_response({"ok": False, "loi": "Không có vật phẩm này trong túi."}, status=400)
+            ts.dat_trang_bi(slot, ma)
+            await self.kho.luu(ts)
+            return web.json_response({
+                "ok": True,
+                "thong_bao": f"Đã trang bị {vp.ten} vào vị trí {slot}!",
+            })
+
+    async def api_thao_trang_bi(self, request: web.Request) -> web.Response:
+        from ..data import vatpham
+        uid, _ = self.uid_cua(request)
+        body = await self._json(request)
+        slot = body.get("slot", "")
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            da_thao = ts.thao_trang_bi(slot)
+            await self.kho.luu(ts)
+            vp = vatpham.lay(da_thao)
+            ten = vp.ten if vp else "trang bị"
+            return web.json_response({
+                "ok": True,
+                "thong_bao": f"Đã tháo {ten}!",
+            })
+
+    async def api_cuong_hoa(self, request: web.Request) -> web.Response:
+        from ..data import vatpham
+        uid, _ = self.uid_cua(request)
+        body = await self._json(request)
+        ma = body.get("ma", "")
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            vp = vatpham.lay(ma)
+            if not vp or not vp.slot_trang_bi:
+                return web.json_response({"ok": False, "loi": "Chỉ có thể cường hóa trang bị / pháp bảo."}, status=400)
+            ch = ts.lay_cuong_hoa()
+            cap = ch.get(ma, 0)
+            if cap >= 10:
+                return web.json_response({"ok": False, "loi": "Trang bị đã đạt cấp cường hóa tối đa (+10)!"}, status=400)
+            chi_phi = int(60 * (vp.pham ** 1.4) * (cap + 1))
+            if ts.linh_thach < chi_phi:
+                return web.json_response({"ok": False, "loi": f"Cần {chi_phi:,} Linh Thạch để cường hóa lên +{cap + 1}."}, status=400)
+            ts.linh_thach -= chi_phi
+            ts.dat_cuong_hoa(ma, cap + 1)
+            await self.kho.luu(ts)
+            return web.json_response({
+                "ok": True,
+                "cap_moi": cap + 1,
+                "thong_bao": f"Chúc mừng! {vp.ten} đã cường hóa thành công lên +{cap + 1}!",
+            })
+
+    async def api_dung_dan(self, request: web.Request) -> web.Response:
+        from ..data import vatpham
+        uid, _ = self.uid_cua(request)
+        body = await self._json(request)
+        ma = body.get("ma", "")
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            vp = vatpham.lay(ma)
+            if not vp or vp.loai != "dan_duoc":
+                return web.json_response({"ok": False, "loi": "Vật phẩm không phải là đan dược."}, status=400)
+            so = await self.kho.dem_vat(uid, ma)
+            if so <= 0:
+                return web.json_response({"ok": False, "loi": "Không có đan dược này trong túi."}, status=400)
+
+            await self.kho.them_vat(uid, ma, -1)
+            msg = []
+            if "tu_vi" in vp.hieu_qua:
+                them_tv = int(vp.hieu_qua["tu_vi"])
+                ts.tu_vi += them_tv
+                msg.append(f"+{them_tv:,} Tu vi")
+            if "tri_thuong" in vp.hieu_qua:
+                ts.than_the = min(100, ts.than_the + int(vp.hieu_qua["tri_thuong"]))
+                ts.thuong_toi = 0
+                msg.append("hồi phục khí huyết toàn diện")
+            if "can_cot" in vp.hieu_qua:
+                ts.can_cot = round(ts.can_cot + vp.hieu_qua["can_cot"] * 0.1, 2)
+                msg.append(f"+{vp.hieu_qua['can_cot']} Căn cốt")
+            if "dao_tam" in vp.hieu_qua:
+                ts.dao_tam = min(100, ts.dao_tam + int(vp.hieu_qua["dao_tam"]))
+                msg.append(f"+{vp.hieu_qua['dao_tam']} Đạo tâm")
+
+            await self.kho.luu(ts)
+            thong_bao = f"Đã nuốt {vp.ten}, nhận được: " + ", ".join(msg) if msg else f"Đã sử dụng {vp.ten}."
+            return web.json_response({
+                "ok": True,
+                "thong_bao": thong_bao,
+            })
+
+    async def api_duong_thuong(self, request: web.Request) -> web.Response:
+        uid, _ = self.uid_cua(request)
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            ts.thuong_toi = 0
+            ts.than_the = 100
+            await self.kho.luu(ts)
+            return web.json_response({
+                "ok": True,
+                "thong_bao": "Vận khí điều tức hoàn tất! Khí huyết và chân khí đã hồi phục 100%.",
+            })
+
 
 @web.middleware
 async def bao_ve(request, handler):
@@ -256,7 +470,7 @@ async def bao_ve(request, handler):
         if origin and urlsplit(origin).netloc != request.host:
             raise web.HTTPForbidden(text="Nguồn yêu cầu không hợp lệ.")
     response = await handler(request)
-    if request.path in {"/vao", "/gui", "/nut", "/keo", "/api/state"}:
+    if request.path.startswith(("/vao", "/gui", "/nut", "/keo", "/api/")):
         response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
@@ -271,6 +485,15 @@ def tao_app(dong: Dong) -> web.Application:
         app.router.add_get(route, static_file)
     app.router.add_static("/fonts/", str(DUONG_WEB / "fonts"))
     app.router.add_get("/api/state", dong.trang_thai)
+    app.router.add_post("/api/action/tu-luyen", dong.api_tu_luyen)
+    app.router.add_post("/api/action/dot-pha", dong.api_dot_pha)
+    app.router.add_post("/api/action/san-quai", dong.api_san_quai)
+    app.router.add_post("/api/action/tran-thap", dong.api_tran_thap)
+    app.router.add_post("/api/action/trang-bi", dong.api_trang_bi)
+    app.router.add_post("/api/action/thao-trang-bi", dong.api_thao_trang_bi)
+    app.router.add_post("/api/action/cuong-hoa", dong.api_cuong_hoa)
+    app.router.add_post("/api/action/dung-dan", dong.api_dung_dan)
+    app.router.add_post("/api/action/duong-thuong", dong.api_duong_thuong)
     app.router.add_post("/vao", dong.vao)
     app.router.add_post("/gui", dong.gui_lenh)
     app.router.add_post("/nut", dong.bam_nut)

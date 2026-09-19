@@ -40,16 +40,13 @@ async def luyen_tap(kho, ts, rng: random.Random | None = None, he_so_the_gioi: d
     if con > 0:
         return KetQua(
             tieu_de="Chưa tới lúc",
-            van=[f"Khí huyết vừa mới lắng, kinh mạch còn ê ẩm. Đợi thêm {khac_gio(con)} nữa rồi hẵng ngồi xuống. "
-                 "Vội trên đường tu là cách chết chậm mà chắc."],
+            van=[f"Khí huyết đang lưu chuyển. Đợi thêm {con} giây nữa rồi hẵng tiếp tục toạ thiền."],
             thanh_cong=False,
         )
     if ts.dang_bi_thuong:
         return KetQua(
             tieu_de="Thương thế chưa lành",
-            van=[f"Vừa nhắm mắt vận công, chỗ nội thương đã nhói lên như có ai cắm kim. "
-                 f"Còn {khac_gio(ts.con_bao_lau_duong_thuong)} nữa mới nên động tới chân khí. "
-                 "Có thể dùng đan dược trị thương nếu ngươi không muốn nằm chờ."],
+            van=[f"Vừa nhắm mắt vận công, chỗ nội thương đã nhói lên. Còn {ts.con_bao_lau_duong_thuong} giây nữa, hoặc bấm 'Vận khí hồi phục' để trị thương ngay."],
             thanh_cong=False,
         )
 
@@ -57,45 +54,23 @@ async def luyen_tap(kho, ts, rng: random.Random | None = None, he_so_the_gioi: d
     hs_mp = mp.he_so_tu_luyen if mp else 1.0
     vk = van_khi(rng, ts.dao_tam, ts.danh_vong)
     can = tu_vi_can_thiet(ts.canh_gioi, ts.tang)
-    thu = can * 0.10 * ts.tu_chat * hs_mp * vk * hs.get("tu_luyen", 1.0)
+    thu = max(25, int(can * 0.18 * ts.tu_chat * hs_mp * vk * hs.get("tu_luyen", 1.0)))
+    lt = rng.randint(8, 25) * (1 + ts.canh_gioi)
 
-    kq = KetQua(tieu_de="Toạ quan", mau=config.MAU_LINH, anh=canh_gioi(ts.canh_gioi).tranh or None)
-    kq.them(rng.choice(MO_DAU_TU_LUYEN))
+    ts.tu_vi += thu
+    ts.linh_thach += lt
+    ts.than_the = min(100, ts.than_the + 10)
 
-    if mp:
-        kq.them(
-            f"Ngươi vận **{mp.cong_phap}**. Khẩu quyết chạy trong đầu như nước chảy trong máng đá cũ — "
-            "đã thuộc tới mức không cần nghĩ, mà vẫn phải nghĩ."
-        )
-    else:
-        kq.them(
-            "Ngươi không có công pháp chính thống, chỉ có mấy câu khẩu quyết chắp vá nghe lỏm được. "
-            "Chân khí đi trong người như nước chảy trên đất phẳng — chậm, tản, và phí."
-        )
+    cs = ts.tinh_chi_so()
+    pt = min(100.0, round(ts.tu_vi / max(1, can) * 100, 1))
 
-    if vk > 1.18 and rng.random() < 0.5:
-        kq.them(rng.choice(CAM_NGO_VUN))
-        thu *= 1.35
-    elif vk < 0.82:
-        kq.them(rng.choice(TRUC_TRAC))
-        thu *= 0.6
-
-    if hs.get("tu_luyen", 1.0) > 1.3:
-        kq.them("Hôm nay linh khí trong trời đất dày lạ thường. Hít một hơi mà ngực đầy tới mức phải nén lại.")
-    elif hs.get("tu_luyen", 1.0) < 0.85:
-        kq.them("Linh khí quanh vùng nhạt như nước lã. Ngươi vét mãi cũng chỉ được chừng ấy.")
-
-    ts.tu_vi += max(1, int(thu))
-    ts.than_the = min(100, ts.than_the + 2)
-    kq.them(rng.choice(KET_TU_LUYEN))
-    kq.them(mo_ta_dao_hanh(ts.canh_gioi, ts.tang, ts.tu_vi))
+    kq = KetQua(tieu_de="Tọa thiền tu luyện", mau=config.MAU_LINH, anh=canh_gioi(ts.canh_gioi).tranh or None)
+    kq.them(f"🧘 **Ngưng thần tĩnh tọa, vận chuyển đại chu thiên hấp thu linh khí.**")
+    kq.them(f"📈 **Tu vi nhận được:** `+{thu:,}` | 💎 **Linh thạch ngưng tụ:** `+{lt}`")
+    kq.them(f"📊 **Tiến độ tầng này:** `{ts.tu_vi:,} / {can:,}` ({pt}%) | ⚔️ **Lực chiến:** `{cs['luc_chien']:,}`")
 
     if ts.tu_vi >= can:
-        kq.them(
-            "**Cửa ải trước mặt đã mở hé.** Chân khí trong đan điền chật chội tới mức đau, "
-            "cứ chực dâng lên đỉnh đầu. Nếu ngươi thấy mình đã sẵn sàng — *hãy đột phá*. "
-            "Nếu chưa, thì cứ nén thêm ít lâu; nén càng lâu, đế càng vững, nhưng nén quá thì kinh mạch chịu không nổi."
-        )
+        kq.them("✨ **Đan điền chân khí đã tràn đầy (100%)! Ngươi đã có thể ĐỘT PHÁ CẢNH GIỚI!**")
         kq.du_lieu["san_sang_dot_pha"] = True
 
     await kho.dat_cho(ts.user_id, "luyentap", config.NGUOI_LANH["luyentap"])
@@ -375,6 +350,7 @@ async def dot_pha(kho, ts, rng: random.Random | None = None, he_so_the_gioi: dic
             return kq
 
     if thanh_bai(rng, ti_le):
+        old_cs = ts.tinh_chi_so()
         ts.that_bai_lien = 0
         du = ts.tu_vi - can
         if len_canh_gioi:
@@ -382,34 +358,27 @@ async def dot_pha(kho, ts, rng: random.Random | None = None, he_so_the_gioi: dic
             ts.tang = 1
             ts.tu_vi = int(du * 0.25)
             cg = canh_gioi(ts.canh_gioi)
-            kq.tieu_de = f"Đột phá — {cg.ten}"
+            kq.tieu_de = f"Đột phá Đại Cảnh Giới — {cg.ten}"
             kq.anh = cg.tranh or "bia_tien_do.png"
-            kq.them(DOT_PHA_CANH_GIOI_MO_TA.get(
-                ts.canh_gioi,
-                f"Ngươi bước qua ngưỡng. Thiên địa trong mắt ngươi đổi màu một lần nữa, "
-                f"và lần này ngươi không còn tìm được chữ nào để tả nó."))
-            kq.them(f"**{cg.ten}.** {cg.than_the.capitalize()}.")
-            kq.them(cg.cam_ngo.capitalize() + ".")
-            kq.them(
-                f"Người ngoài nhìn ngươi từ nay sẽ thấy: {cg.khi_the}. "
-                f"Trong nhân gian, {cg.the_gioi}."
-            )
             ts.danh_vong += 20 * ts.canh_gioi
-            ts.than_the = max(30, ts.than_the - 12)
+            ts.than_the = 100
         else:
             ts.tang += 1
             ts.tu_vi = int(du * 0.35)
-            kq.tieu_de = "Thăng một tầng"
-            kq.them(
-                "Chân khí đâm thủng chỗ bế tắc. Một tiếng 'bựt' rất khẽ vang lên trong người ngươi — "
-                "khẽ tới mức chỉ mình ngươi nghe thấy, nhưng nó đủ lớn để đổi cả một quãng đời."
-            )
-            kq.them(mo_ta_tang(ts.canh_gioi, ts.tang))
-            kq.them(
-                f"Ngươi đã đứng vững ở **{ten_canh_gioi(ts.canh_gioi, ts.tang)}**. "
-                "Không có tiếng vỗ tay nào cả. Chỉ có ngọn nến đã cháy hết, và một cơn đói cồn cào."
-            )
+            kq.tieu_de = f"Thăng cấp — {ten_canh_gioi(ts.canh_gioi, ts.tang)}"
             ts.danh_vong += 3
+            ts.than_the = 100
+
+        new_cs = ts.tinh_chi_so()
+        kq.them(f"🎉 **ĐỘT PHÁ THÀNH CÔNG!** Ngươi đã bước lên **{ten_canh_gioi(ts.canh_gioi, ts.tang)}**!")
+        kq.them(
+            f"📊 **CHỈ SỐ TĂNG TRƯỞNG:**\n"
+            f"• ❤️ Khí Huyết (HP): `{old_cs['hp_max']:,}` ➔ `{new_cs['hp_max']:,}` (+{new_cs['hp_max'] - old_cs['hp_max']})\n"
+            f"• 🔷 Chân Khí (MP): `{old_cs['mp_max']:,}` ➔ `{new_cs['mp_max']:,}` (+{new_cs['mp_max'] - old_cs['mp_max']})\n"
+            f"• 🗡️ Công Kích: `{old_cs['cong']:,}` ➔ `{new_cs['cong']:,}` (+{new_cs['cong'] - old_cs['cong']})\n"
+            f"• 🛡️ Phòng Ngự: `{old_cs['thu']:,}` ➔ `{new_cs['thu']:,}` (+{new_cs['thu'] - old_cs['thu']})\n"
+            f"• ⚔️ Lực Chiến: `{old_cs['luc_chien']:,}` ➔ `{new_cs['luc_chien']:,}` (+{new_cs['luc_chien'] - old_cs['luc_chien']})"
+        )
         kq.du_lieu["thanh_cong"] = True
         await kho.chep(ts.user_id, "dot_pha",
                        f"Đột phá thành công, nay là {ten_canh_gioi(ts.canh_gioi, ts.tang)}.")
@@ -417,36 +386,12 @@ async def dot_pha(kho, ts, rng: random.Random | None = None, he_so_the_gioi: dic
         ts.that_bai_lien += 1
         kq.tieu_de = "Xung quan thất bại"
         kq.mau = config.MAU_HUYET
-        muc = rng.random()
-        mat = 0.0
-        if muc < 0.45:
-            kq.them(rng.choice(DOT_PHA_THAT_BAI_NHE))
-            mat = 0.35
-            ts.than_the = max(10, ts.than_the - rng.randint(5, 12))
-        elif muc < 0.85:
-            kq.them(rng.choice(DOT_PHA_THAT_BAI_NANG))
-            mat = 0.6
-            ts.than_the = max(5, ts.than_the - rng.randint(22, 40))
-            ts.thuong_toi = int(time.time()) + int(config.DUONG_THUONG_TOI_DA * rng.uniform(0.5, 1.0))
-        else:
-            kq.them(rng.choice(DOT_PHA_TAU_HOA))
-            mat = 0.75
-            ts.dao_tam = max(3, ts.dao_tam - rng.randint(10, 20))
-            ts.than_the = max(3, ts.than_the - rng.randint(30, 50))
-            ts.thuong_toi = int(time.time()) + config.DUONG_THUONG_TOI_DA
-            if ts.canh_gioi >= 7 and rng.random() < 0.18:
-                ts.da_chet = 1
-                kq.them(
-                    "**Và rồi ngươi không tỉnh lại nữa.**\n\n"
-                    "Người ta tìm thấy ngươi bảy ngày sau, vẫn ngồi trong tư thế cũ, thân thể đã hoá tro, "
-                    "chỉ còn lại vết cháy hình một người ngồi in trên nền đá. "
-                    "Đường tu là thế: đi được bao xa thì đi, ngã ở đâu thì nằm lại đó."
-                )
-        ts.tu_vi = int(ts.tu_vi * (1 - mat))
+        ts.tu_vi = int(ts.tu_vi * 0.85)
+        ts.than_the = max(50, ts.than_the - 15)
+        ts.thuong_toi = 0
         kq.them(
-            "Ngươi thất bại. Cửa ải vẫn ở đó, không đi đâu cả — nhưng lần sau nó sẽ nhìn ngươi bằng con mắt khác. "
-            + ("Cái đau này, giữ lấy. Nó là thứ duy nhất ngươi thu được hôm nay." if ts.that_bai_lien < 3
-               else "Đã mấy lần rồi. Trong lòng ngươi bắt đầu có một câu hỏi mà ngươi không dám hỏi thành lời.")
+            f"⚠️ **Đột phá chưa thành!** Khí tức tán loạn, hao hụt một phần tu vi (-15%).\n"
+            f"Tích lũy thêm tu vi hoặc nuốt Đan Dược Đột Phá (Trúc Cơ Đan, Kết Đan Đan) để tăng tỷ lệ thành công!"
         )
         await kho.chep(ts.user_id, "dot_pha", "Xung quan thất bại.")
 

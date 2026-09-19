@@ -206,6 +206,118 @@ class TuSi:
     def dat_ghi(self, d: dict[str, Any]) -> None:
         self.ghi_chu = json.dumps(d, ensure_ascii=False)
 
+    def lay_trang_bi(self) -> dict[str, str]:
+        g = self.ghi()
+        tb = dict(g.get("trang_bi", {}))
+        if self.phap_bao and "phap_bao" not in tb and "vu_khi" not in tb:
+            from .data import vatpham
+            vp = vatpham.lay(self.phap_bao)
+            if vp:
+                slot = vp.slot_trang_bi or "phap_bao"
+                tb[slot] = self.phap_bao
+        return tb
+
+    def dat_trang_bi(self, slot: str, ma_vat: str) -> None:
+        g = self.ghi()
+        tb = dict(g.get("trang_bi", {}))
+        tb[slot] = ma_vat
+        g["trang_bi"] = tb
+        self.dat_ghi(g)
+        if slot in ("vu_khi", "phap_bao"):
+            self.phap_bao = ma_vat
+
+    def thao_trang_bi(self, slot: str) -> str:
+        g = self.ghi()
+        tb = dict(g.get("trang_bi", {}))
+        da_thao = tb.pop(slot, "")
+        g["trang_bi"] = tb
+        self.dat_ghi(g)
+        if self.phap_bao == da_thao:
+            self.phap_bao = tb.get("vu_khi") or tb.get("phap_bao") or ""
+        return da_thao
+
+    def lay_cuong_hoa(self) -> dict[str, int]:
+        return dict(self.ghi().get("cuong_hoa", {}))
+
+    def dat_cuong_hoa(self, ma_vat: str, cap: int) -> None:
+        g = self.ghi()
+        ch = dict(g.get("cuong_hoa", {}))
+        ch[ma_vat] = cap
+        g["cuong_hoa"] = ch
+        self.dat_ghi(g)
+
+    def thap_tang(self) -> int:
+        return max(1, int(self.ghi().get("thap_tang", 1)))
+
+    def dat_thap_tang(self, tang: int) -> None:
+        g = self.ghi()
+        g["thap_tang"] = tang
+        self.dat_ghi(g)
+
+    def tinh_chi_so(self) -> dict[str, Any]:
+        from .canhgioi import tu_vi_can_thiet
+        from .data import vatpham, monphai
+        cg = self.canh_gioi
+        tang = self.tang
+
+        hp_max = int(250 + 120 * tang + 850 * (cg ** 1.8))
+        mp_max = int(60 + 25 * tang + 150 * (cg ** 1.6))
+        cong = int((35 + 16 * tang + 140 * (cg ** 1.8)) * self.tu_chat)
+        thu = int((15 + 9 * tang + 70 * (cg ** 1.8)) * self.can_cot)
+        bao_kich = round(5.0 + min(25.0, (self.dao_tam - 50) * 0.2 + self.can_cot * 3.0), 1)
+        toc_do = int(50 + 10 * cg + tang * 3)
+
+        mp = monphai.lay(self.mon_phai) if self.mon_phai else None
+        if mp:
+            cong = int(cong * mp.he_so_chien)
+
+        tb = self.lay_trang_bi()
+        ch = self.lay_cuong_hoa()
+        for slot, ma in tb.items():
+            vp = vatpham.lay(ma)
+            if not vp:
+                continue
+            he_so_ch = 1.0 + 0.15 * ch.get(ma, 0)
+            cong += int(vp.chi_so_cong * he_so_ch)
+            thu += int(vp.chi_so_thu * he_so_ch)
+            hp_max += int(vp.chi_so_hp * he_so_ch)
+            bao_kich = round(bao_kich + vp.chi_so_bao_kich * (1.0 + 0.1 * ch.get(ma, 0)), 1)
+            toc_do += int(vp.chi_so_toc_do * he_so_ch)
+
+        hp_hien_tai = int(hp_max * (max(1, min(100, self.than_the)) / 100.0))
+        luc_chien = int(cong * 3.5 + thu * 3.0 + hp_max * 0.4 + mp_max * 0.5 + bao_kich * 25 + toc_do * 2.0)
+        tu_vi_can = tu_vi_can_thiet(cg, tang)
+        tu_vi_sec = max(1, int(1.6 ** cg + tang * 0.6))
+        if mp:
+            tu_vi_sec = max(1, int(tu_vi_sec * mp.he_so_tu_luyen))
+
+        return {
+            "hp": hp_hien_tai,
+            "hp_max": hp_max,
+            "mp": mp_max,
+            "mp_max": mp_max,
+            "cong": cong,
+            "thu": thu,
+            "bao_kich": bao_kich,
+            "toc_do": toc_do,
+            "luc_chien": luc_chien,
+            "tu_vi_can": tu_vi_can,
+            "tu_vi_sec": tu_vi_sec,
+        }
+
+    def nhan_tu_vi_treo_may(self) -> tuple[int, int]:
+        g = self.ghi()
+        now = int(time.time())
+        last = g.get("last_idle", now)
+        delta = min(12 * 3600, max(0, now - last))
+        cs = self.tinh_chi_so()
+        cong = int(delta * cs["tu_vi_sec"])
+        g["last_idle"] = now
+        self.dat_ghi(g)
+        if cong > 0:
+            self.tu_vi += cong
+        return cong, delta
+
 
 CAC_COT = [f.name for f in TuSi.__dataclass_fields__.values()]  # type: ignore[attr-defined]
 

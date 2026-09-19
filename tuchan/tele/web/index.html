@@ -9,9 +9,9 @@
     <meta name="theme-color" content="#0c1917" />
     <meta
       name="description"
-      content="Tiên Đồ Vô Tận — thế giới tu tiên trong Telegram. Tu luyện, vượt ải yêu vương và sưu tầm pháp bảo."
+      content="Tiên Đồ Vô Tận — Tu tiên chiến đấu, tọa thiền ngưng khí, săn quái dã ngoại, vượt Trấn Yêu Tháp."
     />
-    <title>Tiên Đồ Vô Tận · Telegram Mini App</title>
+    <title>Tiên Đồ Vô Tận · Tu Tiên Chiến Đấu</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="icon" href="/favicon.svg" />
     <link rel="stylesheet" href="/mong.css" />
@@ -77,256 +77,300 @@
       </defs>
     </svg>
     <aside class="sidebar">
-      <a class="brand" href="#dong-phu" aria-label="Tiên Đồ Vô Tận — Động phủ"
+      <a class="brand" href="#tu-luyen" aria-label="Tiên Đồ Vô Tận — Tu Luyện"
         ><span class="brand-seal"
-          ><svg><use href="#i-mountain" /></svg></span
-        ><span>TIÊN ĐỒ<small>V Ô &nbsp; T Ậ N</small></span></a
+          ><svg><use href="#i-lotus" /></svg></span
+        ><span>TIÊN ĐỒ<small>C H I Ế N &nbsp; Đ Ấ U</small></span></a
       >
-      <div class="side-divider"><span>ĐẠO LỘ CỦA NGƯƠI</span></div>
+      <div class="side-divider"><span>LỐI CHƠI CHÍNH</span></div>
       <nav class="main-nav" aria-label="Điều hướng chính">
         <button class="nav-btn active" data-page="home">
-          <svg><use href="#i-home" /></svg><span>Động phủ</span><i></i>
+          <svg><use href="#i-lotus" /></svg><span>Tu Luyện</span><i></i>
         </button>
-        <button class="nav-btn" data-page="boss">
-          <svg><use href="#i-sword" /></svg><span>Ải yêu vương</span
-          ><small>7</small>
+        <button class="nav-btn" data-page="combat">
+          <svg><use href="#i-sword" /></svg><span>Chiến Đấu</span><small>Săn Quái</small>
         </button>
         <button class="nav-btn" data-page="bag">
-          <svg><use href="#i-bag" /></svg><span>Túi càn khôn</span>
-        </button>
-        <button class="nav-btn" data-page="explore">
-          <svg><use href="#i-mountain" /></svg><span>Du ngoạn</span>
+          <svg><use href="#i-bag" /></svg><span>Túi & Trang Bị</span>
         </button>
         <button class="nav-btn" data-page="craft">
-          <svg><use href="#i-fire" /></svg><span>Đan phòng</span>
+          <svg><use href="#i-fire" /></svg><span>Đan Phòng</span>
         </button>
-        <button class="nav-btn" data-page="sect">
-          <svg><use href="#i-home" /></svg><span>Tông môn</span>
+        <button class="nav-btn" data-page="codex">
+          <svg><use href="#i-scroll" /></svg><span>Vạn Vật Phổ</span>
         </button>
       </nav>
-      <div class="side-divider"><span>THIÊN CƠ CÁC</span></div>
+      <div class="side-divider"><span>KÊNH LỆNH & TRỢ GIÚP</span></div>
       <nav class="secondary-nav">
-        <button data-page="codex">
-          <svg><use href="#i-scroll" /></svg>Vạn vật phổ</button
+        <button data-command="/nv">
+          <svg><use href="#i-star" /></svg>Chỉ số chi tiết</button
         ><button data-command="/nhatky">
-          <svg><use href="#i-leaf" /></svg>Nhật ký tu hành</button
+          <svg><use href="#i-leaf" /></svg>Nhật ký hành động</button
         ><button data-command="/chidan">
-          <svg><use href="#i-star" /></svg>Chỉ dẫn nhập môn
+          <svg><use href="#i-scroll" /></svg>Hướng dẫn tu tiên
         </button>
       </nav>
       <div class="side-bottom">
         <span class="seal-small"
-          ><svg><use href="#i-lotus" /></svg
+          ><svg><use href="#i-sword" /></svg
         ></span>
-        <p>Nhất niệm nhập đạo<small>Vạn dặm tiên đồ</small></p>
+        <p>Chiến đấu trảm yêu<small>Vấn đỉnh trường sinh</small></p>
         <div class="telegram-tag"><span>↗</span> TELEGRAM MINI APP</div>
       </div>
     </aside>
     <div class="app-shell">
       <header class="topbar">
         <div class="breadcrumbs">
-          <span>Thanh Vân giới</span><b>/</b
-          ><strong id="page-crumb">Động phủ</strong>
+          <span>Tiên Đồ</span><b>/</b
+          ><strong id="page-crumb">Tu Luyện</strong>
         </div>
         <div class="top-tools">
-          <span class="connection" id="connection"><i></i> Đang kết nối</span
-          ><span class="wallet"
-            ><svg><use href="#i-gem" /></svg><b id="wallet-value">—</b
-            ><small>Linh thạch</small></span
-          ><button
+          <span class="connection" id="connection"><i></i> Đang kết nối</span>
+          <span class="wallet" title="Tổng lực chiến nhân vật">
+            <svg><use href="#i-sword" /></svg><b id="cp-top">—</b><small>Lực chiến</small>
+          </span>
+          <span class="wallet" title="Linh thạch sở hữu">
+            <svg><use href="#i-gem" /></svg><b id="wallet-value">—</b><small>Linh thạch</small>
+          </span>
+          <button
             class="icon-btn"
             id="journal-open"
             aria-label="Mở nhật ký hành động"
+            title="Lệnh & Nhật ký"
           >
             <svg><use href="#i-bell" /></svg></button
-          ><button class="avatar" id="profile-open" aria-label="Nhân vật">
-            <svg><use href="#i-mountain" /></svg>
+          ><button class="avatar" id="profile-open" aria-label="Nhân vật" title="Bảng chỉ số">
+            <svg><use href="#i-lotus" /></svg>
           </button>
         </div>
       </header>
       <main id="main">
         <div class="page-intro">
           <div>
-            <div class="eyebrow">MỘT NIỆM TU HÀNH · MỘT ĐỜI TIÊN ĐẠO</div>
-            <h1 id="page-title">Động phủ</h1>
+            <div class="eyebrow">TU LUYỆN CHÂN KHÍ · CHIẾN ĐẤU TRẢM YÊU</div>
+            <h1 id="page-title">Tu Luyện</h1>
             <p id="page-subtitle">
-              Gác lại hồng trần, trở về với con đường của ngươi.
+              Ngưng tụ thiên địa linh khí, rèn luyện thân thể, đột phá cảnh giới.
             </p>
           </div>
-          <span class="world-tag"><i></i> Linh khí hội tụ</span>
+          <span class="world-tag" id="status-tag"><i></i> Khí huyết sung mãn</span>
         </div>
+
+        <!-- ════════════════════ PAGE: TU LUYỆN (HOME) ════════════════════ -->
         <section id="page-home" class="page">
           <div class="home-top">
-            <article class="hero panel">
-              <div class="hero-shade"></div>
-              <div class="hero-particles" aria-hidden="true">
-                <i></i><i></i><i></i><i></i><i></i><i></i>
-              </div>
-              <div class="hero-content">
-                <span class="hero-label"><span></span> TIÊN ĐỒ VÔ TẬN</span>
-                <h2>Đạo tại tâm.<br />Tiên tại ngươi.</h2>
-                <p>
-                  Một thân áo vải, một ý niệm trường sinh.<br />Con đường vạn
-                  dặm bắt đầu từ hôm nay.
-                </p>
-                <button class="btn gold" id="hero-action">
-                  <svg><use href="#i-lotus" /></svg><span>Bước vào tiên đồ</span
-                  ><svg><use href="#i-arrow" /></svg>
-                </button>
-              </div>
-              <div class="hero-foot">
-                <svg><use href="#i-leaf" /></svg
-                ><span>Thanh Vân Sơn <b>·</b> Chốn khởi nguồn tiên đạo</span
-                ><span class="hero-mark">01</span>
-              </div>
-            </article>
-            <article class="cultivation panel">
+            <article class="cultivation panel" style="width: 100%;">
               <div class="panel-heading">
-                <h3>Đạo hạnh</h3>
+                <h3>Động Phủ Tu Luyện</h3>
                 <span class="tiny-tag" id="cultivator-sect">TÁN TU</span>
               </div>
-              <div class="cultivation-orb">
+              <div class="cultivation-orb" id="cultivation-orb-btn" title="Bấm để ngưng tụ linh khí" style="cursor: pointer;">
                 <div class="orbit orbit-one"></div>
                 <div class="orbit orbit-two"></div>
-                <span class="orb-glyph"
-                  ><svg><use href="#i-lotus" /></svg></span
-                ><span class="orbit-star">✦</span>
+                <span class="orb-glyph"><svg><use href="#i-lotus" /></svg></span>
+                <span class="orbit-star">✦</span>
               </div>
-              <h3 id="realm-name">Phàm nhân</h3>
-              <p id="character-name">Đang chờ một mối tiên duyên</p>
-              <div class="progress-label">
-                <span>Tu vi tích lũy</span
-                ><strong id="cultivation-value">Chưa nhập đạo</strong>
+
+              <div class="cp-badge">
+                ⚔️ LỰC CHIẾN: <span id="cp-display">0</span>
               </div>
-              <div class="progress-track">
-                <i id="cultivation-progress"></i>
+
+              <h2 id="realm-name" style="margin-bottom: 2px;">Phàm nhân</h2>
+              <p id="character-name" class="muted" style="margin-bottom: 12px;">Đang chờ nhập đạo</p>
+
+              <!-- Thanh Khí Huyết, Chân Khí, Tu Vi -->
+              <div class="vital-bars">
+                <div class="vital-row">
+                  <div class="vital-label">
+                    <span>❤️ Khí Huyết (HP)</span>
+                    <strong id="hp-text">0 / 0</strong>
+                  </div>
+                  <div class="vital-track bar-hp"><i id="hp-bar" style="width: 100%;"></i></div>
+                </div>
+
+                <div class="vital-row">
+                  <div class="vital-label">
+                    <span>🔷 Chân Khí (MP)</span>
+                    <strong id="mp-text">0 / 0</strong>
+                  </div>
+                  <div class="vital-track bar-mp"><i id="mp-bar" style="width: 100%;"></i></div>
+                </div>
+
+                <div class="vital-row">
+                  <div class="vital-label">
+                    <span>✨ Tu Vi Tiến Độ</span>
+                    <strong id="cultivation-value">0 / 0 (<span id="tuvi-percent">0%</span>)</strong>
+                  </div>
+                  <div class="vital-track bar-tuvi"><i id="cultivation-progress" style="width: 0%;"></i></div>
+                </div>
               </div>
-              <button class="btn outline wide" data-command="/dotpha">
-                <svg><use href="#i-star" /></svg>Đột phá cảnh giới
+
+              <span class="idle-rate-tag" id="idle-rate-tag">
+                ⚡ Tự động: +<b id="tuvi-rate">1</b> Tu vi/giây (Treo máy)
+              </span>
+
+              <!-- Nút hành động Tu Luyện -->
+              <div class="cultivation-buttons">
+                <button class="btn gold" id="btn-meditate">
+                  <svg><use href="#i-lotus" /></svg> Tọa Thiền Tụ Khí
+                </button>
+                <button class="btn green" id="btn-breakthrough">
+                  <svg><use href="#i-star" /></svg> Đột Phá Cảnh Giới
+                </button>
+                <button class="btn outline" id="btn-heal">
+                  <svg><use href="#i-leaf" /></svg> Vận Khí Hồi Phục
+                </button>
+                <button class="btn outline" id="btn-quick-pill">
+                  <svg><use href="#i-fire" /></svg> Dùng Đan Tu Vi
+                </button>
+              </div>
+            </article>
+          </div>
+
+          <!-- Bảng thuộc tính RPG chi tiết -->
+          <article class="panel" style="margin-top: 14px;">
+            <div class="panel-heading">
+              <h3>Bảng Thuộc Tính Nhân Vật</h3>
+              <small class="muted">Tự động tăng khi đột phá & cường hóa</small>
+            </div>
+            <div class="stats-grid">
+              <div class="stat-box">
+                <small>🗡️ Công Kích</small>
+                <strong id="stat-atk">0</strong>
+              </div>
+              <div class="stat-box">
+                <small>🛡️ Phòng Ngự</small>
+                <strong id="stat-def">0</strong>
+              </div>
+              <div class="stat-box">
+                <small>💥 Bạo Kích</small>
+                <strong id="stat-crit">0%</strong>
+              </div>
+              <div class="stat-box">
+                <small>💨 Thân Pháp</small>
+                <strong id="stat-spd">0</strong>
+              </div>
+              <div class="stat-box">
+                <small>🧬 Căn Cốt</small>
+                <strong id="stat-cancot">1.0</strong>
+              </div>
+              <div class="stat-box">
+                <small>🌀 Tư Chất</small>
+                <strong id="stat-tuchat">1.0</strong>
+              </div>
+              <div class="stat-box">
+                <small>🧘 Đạo Tâm</small>
+                <strong id="stat-daotam">60</strong>
+              </div>
+              <div class="stat-box">
+                <small>🗼 Trấn Tháp</small>
+                <strong id="stat-tower">Tầng 1</strong>
+              </div>
+            </div>
+          </article>
+
+          <!-- 4 Ô Trang Bị Đang Mặc -->
+          <article class="panel equip-section">
+            <div class="panel-heading">
+              <h3>Trang Bị Hộ Thân (4 Vị Trí)</h3>
+              <button class="btn outline" data-page="bag">Xem Túi Đồ ↗</button>
+            </div>
+            <div class="equip-grid">
+              <div class="equip-slot-card" id="slot-vu_khi">
+                <span class="equip-slot-title">🗡️ Vũ Khí</span>
+                <span class="equip-slot-name muted">*(Trống)*</span>
+                <span class="equip-slot-stats">+0 Công kích</span>
+              </div>
+              <div class="equip-slot-card" id="slot-giap">
+                <span class="equip-slot-title">🛡️ Chiến Giáp</span>
+                <span class="equip-slot-name muted">*(Trống)*</span>
+                <span class="equip-slot-stats">+0 Phòng ngự</span>
+              </div>
+              <div class="equip-slot-card" id="slot-phap_bao">
+                <span class="equip-slot-title">🔮 Pháp Bảo</span>
+                <span class="equip-slot-name muted">*(Trống)*</span>
+                <span class="equip-slot-stats">+0 Công/Thủ</span>
+              </div>
+              <div class="equip-slot-card" id="slot-ngoc_boi">
+                <span class="equip-slot-title">💍 Ngọc Bội</span>
+                <span class="equip-slot-name muted">*(Trống)*</span>
+                <span class="equip-slot-stats">+0 Khí huyết</span>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <!-- ════════════════════ PAGE: CHIẾN ĐẤU (COMBAT) ════════════════════ -->
+        <section id="page-combat" class="page" hidden>
+          <!-- Sub-tabs chuyển chế độ chiến đấu -->
+          <div class="sub-tabs">
+            <button class="sub-tab-btn active" data-combat-tab="hunt">
+              <svg><use href="#i-mountain" /></svg> Sơn Dã Săn Quái
+            </button>
+            <button class="sub-tab-btn" data-combat-tab="tower">
+              <svg><use href="#i-star" /></svg> Trấn Yêu Tháp (100 Tầng)
+            </button>
+            <button class="sub-tab-btn" data-combat-tab="boss">
+              <svg><use href="#i-sword" /></svg> Ải Yêu Vương (7 Boss)
+            </button>
+          </div>
+
+          <!-- Chế độ 1: Sơn Dã Săn Quái -->
+          <div id="combat-view-hunt">
+            <div class="zone-selector" id="zone-selector"></div>
+            <div class="monster-grid" id="monster-grid"></div>
+          </div>
+
+          <!-- Chế độ 2: Trấn Yêu Tháp -->
+          <div id="combat-view-tower" hidden>
+            <article class="tower-panel">
+              <span class="eyebrow" style="color: #d8b4e2;">THƯỢNG CỔ PHÁP TRẬN · 100 TẦNG THỬ THÁCH</span>
+              <div class="tower-floor-display">TẦNG <span id="tower-floor">1</span></div>
+              <p class="muted">Mỗi tầng có một thủ vệ cấm chế. Vượt ải nhận lượng lớn Tu vi, Linh thạch và Bảo vật hiếm!</p>
+
+              <div class="tower-guardian-box" id="tower-guardian-box">
+                <h4 id="tower-guardian-name" style="color: #fff; margin-bottom: 6px;">Thủ Vệ Trấn Tháp</h4>
+                <div class="monster-stats-row" style="margin-bottom: 8px;">
+                  <span>❤️ Máu: <strong id="tower-guardian-hp">0</strong></span>
+                  <span>🗡️ Công: <strong id="tower-guardian-atk">0</strong></span>
+                  <span>🛡️ Thủ: <strong id="tower-guardian-def">0</strong></span>
+                </div>
+                <div class="monster-drops">
+                  🎁 Phần thưởng tầng: <span id="tower-guardian-rewards">Tu vi, Linh thạch</span>
+                </div>
+              </div>
+
+              <button class="btn gold wide" id="btn-fight-tower" style="max-width: 440px; margin: 0 auto;">
+                <svg><use href="#i-sword" /></svg> Khiêu Chiến Tầng Tháp
               </button>
             </article>
           </div>
-          <div class="quick-actions">
-            <button data-command="/luyentap" data-effect="cultivate">
-              <span class="action-icon jade"
-                ><svg><use href="#i-lotus" /></svg></span
-              ><span
-                ><strong>Tọa thiền tu luyện</strong
-                ><small id="practice-hint"
-                  >Hấp thu linh khí đất trời</small
-                ></span
-              ><svg class="trailing"><use href="#i-arrow" /></svg>
-            </button>
-            <button data-command="/duongthuong">
-              <span class="action-icon amber"
-                ><svg><use href="#i-leaf" /></svg></span
-              ><span
-                ><strong>Dưỡng thương</strong
-                ><small>Tĩnh tâm, khôi phục thân thể</small></span
-              ><svg class="trailing"><use href="#i-arrow" /></svg>
-            </button>
-            <button data-page="explore">
-              <span class="action-icon blue"
-                ><svg><use href="#i-mountain" /></svg></span
-              ><span
-                ><strong>Du ngoạn kỳ duyên</strong
-                ><small>Tìm linh thảo, gặp cơ duyên</small></span
-              ><svg class="trailing"><use href="#i-arrow" /></svg>
-            </button>
-          </div>
-          <div class="home-bottom">
-            <section class="panel boss-preview">
-              <div class="panel-heading">
-                <div>
-                  <span class="eyebrow">BÍ CẢNH THÍ LUYỆN</span>
-                  <h3>Thách thức yêu vương</h3>
-                </div>
-                <button class="text-btn" data-page="boss">
-                  Xem các ải <svg><use href="#i-arrow" /></svg>
-                </button>
+
+          <!-- Chế độ 3: Ải Yêu Vương -->
+          <div id="combat-view-boss" hidden>
+            <div class="section-banner">
+              <svg><use href="#i-sword" /></svg>
+              <div>
+                <h3>Thất Đại Yêu Vương</h3>
+                <p>Đánh bại 7 bóng chiếu yêu vương cổ đại. Chiến lợi phẩm nhận một lần mỗi kiếp.</p>
               </div>
-              <div class="boss-preview-inner">
-                <div class="boss-thumb">
-                  <img
-                    src="/tranh/tru_vuong.jpg"
-                    alt="Thiết Nha Trư Vương trong rừng Thanh Khê"
-                  /><span>ẢI 01</span>
-                </div>
-                <div class="boss-preview-copy">
-                  <span class="tag amber-text">ẢI NHẬP MÔN</span>
-                  <h3>Thiết Nha Trư Vương</h3>
-                  <p>
-                    Bóng yêu vương thức giấc giữa rừng sâu.<br />Ngươi đã sẵn
-                    sàng thử kiếm?
-                  </p>
-                  <div class="reward-mini">
-                    <img
-                      src="/tranh/vatpham/vat_lieu.svg"
-                      alt="Linh thạch"
-                    /><span>50 linh thạch</span
-                    ><img
-                      src="/tranh/vatpham/dan_duoc.svg"
-                      alt="Hồi Khí Đan"
-                    /><span>Hồi Khí Đan</span>
-                  </div>
-                  <button class="btn outline" data-page="boss">
-                    Khám phá bí cảnh <svg><use href="#i-arrow" /></svg>
-                  </button>
-                </div>
-              </div>
-            </section>
-            <section class="panel bag-preview">
-              <div class="panel-heading">
-                <div>
-                  <span class="eyebrow">HÀNH TRANG TIÊN ĐẠO</span>
-                  <h3>Túi càn khôn</h3>
-                </div>
-                <button class="text-btn" data-page="bag">
-                  Mở túi <svg><use href="#i-arrow" /></svg>
-                </button>
-              </div>
-              <div id="bag-preview-grid" class="mini-items"></div>
-              <p id="bag-preview-note" class="muted">
-                Nhập đạo để nhận hành trang đầu tiên.
-              </p>
-              <div class="bag-bottom">
-                <svg><use href="#i-scroll" /></svg
-                ><span>Mỗi vật đều mang một mối cơ duyên.</span>
-              </div>
-            </section>
-          </div>
-          <div class="quote">
-            <span>✦</span> “Đường tu tiên không hỏi xuất thân, chỉ hỏi lòng
-            người có bền.” <span>✦</span>
-          </div>
-        </section>
-        <section id="page-boss" class="page" hidden>
-          <div class="section-banner">
-            <svg><use href="#i-sword" /></svg>
-            <div>
-              <h3>Bảy cửa ải · Một con đường</h3>
-              <p>
-                Đánh bại bóng chiếu yêu vương để mở ải tiếp theo. Chiến lợi phẩm
-                nhận một lần mỗi kiếp.
-              </p>
             </div>
-            <button class="btn outline" data-command="/boss">
-              Boss thế giới ↗
-            </button>
-          </div>
-          <div class="boss-layout">
-            <div id="stage-list" class="stage-list"></div>
-            <article id="stage-detail" class="panel stage-detail"></article>
+            <div class="boss-layout">
+              <div id="stage-list" class="stage-list"></div>
+              <article id="stage-detail" class="panel stage-detail"></article>
+            </div>
           </div>
         </section>
+
+        <!-- ════════════════════ PAGE: TÚI ĐỒ & TRANG BỊ ════════════════════ -->
         <section id="page-bag" class="page" hidden>
           <div class="toolbar">
             <div class="filters" id="bag-filters">
               <button class="active" data-filter="all">Tất cả</button
-              ><button data-filter="phap_bao">Pháp bảo</button
+              ><button data-filter="phap_bao">Trang bị</button
               ><button data-filter="dan_duoc">Đan dược</button
               ><button data-filter="duoc_lieu">Linh thảo</button
-              ><button data-filter="other">Kỳ vật & vật liệu</button>
+              ><button data-filter="other">Vật liệu</button>
             </div>
             <button class="btn outline" data-command="/cuahang">
               Ghé phường thị ↗
@@ -335,95 +379,37 @@
           <div class="character-vitals" id="vitals"></div>
           <div id="inventory" class="inventory-grid"></div>
         </section>
-        <section id="page-explore" class="page" hidden>
-          <div class="feature-landscape panel">
-            <span class="eyebrow">SƠN HÀ VẠN DẶM</span>
-            <h2>Đi qua núi sông.<br />Tìm một mối duyên.</h2>
-            <p>Thế giới ngoài động phủ có kỳ ngộ, cũng có hiểm nguy.</p>
-            <button class="btn gold" data-command="/khampha">
-              Lên đường khám phá <svg><use href="#i-arrow" /></svg>
-            </button>
-          </div>
-          <div class="quick-actions">
-            <button data-command="/timduoc">
-              <span class="action-icon jade"
-                ><svg><use href="#i-leaf" /></svg></span
-              ><span
-                ><strong>Tìm linh thảo</strong
-                ><small>Vào núi hái thuốc</small></span
-              ></button
-            ><button data-command="/troi">
-              <span class="action-icon amber"
-                ><svg><use href="#i-star" /></svg></span
-              ><span
-                ><strong>Quan thiên tượng</strong
-                ><small>Đọc biến chuyển đất trời</small></span
-              ></button
-            ><button data-command="/nhanvat">
-              <span class="action-icon blue"
-                ><svg><use href="#i-scroll" /></svg></span
-              ><span
-                ><strong>Xem bản thân</strong
-                ><small>Biết mình trước khi đi xa</small></span
-              >
-            </button>
-          </div>
-        </section>
+
+        <!-- ════════════════════ PAGE: ĐAN PHÒNG ════════════════════ -->
         <section id="page-craft" class="page" hidden>
           <article class="feature-landscape craft-landscape panel">
             <span class="eyebrow">ĐAN HỎA BẤT TỨC</span>
             <h2>Một lò lửa.<br />Vạn vật hóa linh.</h2>
-            <p>Linh thảo thành đan, huyền thiết thành bảo.</p>
+            <p>Luyện dược thảo thành tiên đan tăng tu vi, rèn quặng quý thành thần binh hộ thể.</p>
             <button class="btn gold" data-command="/luyendan">
               Mở lò luyện đan <svg><use href="#i-fire" /></svg>
             </button>
           </article>
           <div class="quick-actions">
             <button data-command="/luyenkhi">
-              <span class="action-icon amber"
-                ><svg><use href="#i-sword" /></svg></span
-              ><strong>Luyện khí</strong></button
-            ><button data-command="/sotay">
-              <span class="action-icon jade"
-                ><svg><use href="#i-scroll" /></svg></span
-              ><strong>Xem công thức</strong></button
-            ><button data-page="bag">
-              <span class="action-icon blue"
-                ><svg><use href="#i-bag" /></svg></span
-              ><strong>Kiểm tra nguyên liệu</strong>
+              <span class="action-icon amber"><svg><use href="#i-sword" /></svg></span>
+              <strong>Luyện khí rèn đồ</strong>
+            </button>
+            <button data-command="/sotay">
+              <span class="action-icon jade"><svg><use href="#i-scroll" /></svg></span>
+              <strong>Xem công thức</strong>
+            </button>
+            <button data-page="bag">
+              <span class="action-icon blue"><svg><use href="#i-bag" /></svg></span>
+              <strong>Kho nguyên liệu</strong>
             </button>
           </div>
         </section>
-        <section id="page-sect" class="page" hidden>
-          <article class="feature-landscape sect-landscape panel">
-            <span class="eyebrow">ĐỒNG MÔN ĐỒNG ĐẠO</span>
-            <h2>Một người tu đạo.<br />Vạn người thành tông.</h2>
-            <p>Tìm một nơi truyền đạo, một lời thề để giữ.</p>
-            <button class="btn gold" data-command="/monphai">
-              Tìm hiểu tông môn <svg><use href="#i-arrow" /></svg>
-            </button>
-          </article>
-          <div class="quick-actions">
-            <button data-command="/nhiemvu">
-              <span class="action-icon jade"
-                ><svg><use href="#i-scroll" /></svg></span
-              ><strong>Gặp vị chấp sự</strong></button
-            ><button data-command="/nhanvat">
-              <span class="action-icon amber"
-                ><svg><use href="#i-gem" /></svg></span
-              ><strong>Xem thân phận</strong></button
-            ><button data-command="/bangpk">
-              <span class="action-icon blue"
-                ><svg><use href="#i-star" /></svg></span
-              ><strong>Bảng tỉ thí</strong>
-            </button>
-          </div>
-        </section>
+
+        <!-- ════════════════════ PAGE: VẠN VẬT PHỔ ════════════════════ -->
         <section id="page-codex" class="page" hidden>
           <div class="toolbar">
-            <p class="muted">
-              Vật phẩm trong thế giới · Không phải đồ đang sở hữu
-            </p>
+            <p class="muted">Bách khoa vật phẩm tu chân giới · Tra cứu công dụng & thuộc tính</p>
             <input
               id="item-search"
               type="search"
@@ -433,30 +419,125 @@
           </div>
           <div id="codex" class="inventory-grid"></div>
         </section>
+
         <footer class="page-footer">
-          <span>TIÊN ĐỒ VÔ TẬN</span
-          ><span>Tu tâm · Luyện đạo · Vấn trường sinh</span
-          ><button id="motion-toggle" aria-pressed="true">Hiệu ứng: Bật</button>
+          <span>TIÊN ĐỒ CHIẾN ĐẤU</span>
+          <span>Tu chân ngưng khí · Trảm yêu trừ ma · Vấn đỉnh tiên đạo</span>
+          <button id="motion-toggle" aria-pressed="true">Hiệu ứng: Bật</button>
         </footer>
       </main>
     </div>
+
+    <!-- Mobile Nav Bar -->
     <nav class="mobile-nav" aria-label="Điều hướng điện thoại">
       <button class="active" data-page="home">
-        <svg><use href="#i-home" /></svg>Động phủ</button
-      ><button data-page="boss">
-        <svg><use href="#i-sword" /></svg>Ải boss</button
+        <svg><use href="#i-lotus" /></svg>Tu Luyện</button
+      ><button data-page="combat">
+        <svg><use href="#i-sword" /></svg>Chiến Đấu</button
       ><button data-page="bag">
-        <svg><use href="#i-bag" /></svg>Túi đồ</button
-      ><button data-page="explore">
-        <svg><use href="#i-mountain" /></svg>Du ngoạn</button
+        <svg><use href="#i-bag" /></svg>Túi Đồ</button
+      ><button data-page="craft">
+        <svg><use href="#i-fire" /></svg>Đan Phòng</button
       ><button id="mobile-more">
         <svg><use href="#i-scroll" /></svg>Thêm
       </button>
     </nav>
+
+    <!-- ════════════════════ DIALOG: CHIẾN ĐẤU TRỰC QUAN (BATTLE ARENA) ════════════════════ -->
+    <dialog id="battle-dialog" class="battle-dialog">
+      <button class="dialog-close icon-btn" data-close aria-label="Đóng">
+        <svg><use href="#i-close" /></svg>
+      </button>
+
+      <div class="battle-arena-head">
+        <!-- Người chơi -->
+        <div class="fighter-card player">
+          <span class="fighter-name" id="battle-p-name">Ngươi</span>
+          <span class="fighter-realm" id="battle-p-realm">Luyện Khí</span>
+          <div class="vital-row">
+            <div class="vital-label"><span>HP</span><span id="battle-p-hp-text">1000/1000</span></div>
+            <div class="vital-track bar-hp"><i id="battle-p-hp-bar" style="width: 100%;"></i></div>
+          </div>
+          <div class="vital-row">
+            <div class="vital-label"><span>MP</span><span id="battle-p-mp-text">200/200</span></div>
+            <div class="vital-track bar-mp"><i id="battle-p-mp-bar" style="width: 100%;"></i></div>
+          </div>
+        </div>
+
+        <div class="vs-badge">VS</div>
+
+        <!-- Đối thủ -->
+        <div class="fighter-card enemy">
+          <span class="fighter-name" id="battle-e-name">Yêu Thú</span>
+          <span class="fighter-realm" id="battle-e-realm">Luyện Khí</span>
+          <div class="vital-row">
+            <div class="vital-label"><span>HP</span><span id="battle-e-hp-text">800/800</span></div>
+            <div class="vital-track bar-hp"><i id="battle-e-hp-bar" style="width: 100%;"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Khung diễn biến từng hiệp đấu -->
+      <div class="battle-log-scroll" id="battle-log-scroll"></div>
+
+      <!-- Các nút ra chiêu -->
+      <div class="battle-action-grid" id="battle-action-grid">
+        <button class="btn" id="b-act-atk">⚔️ Đánh Thường</button>
+        <button class="btn" id="b-act-skill1">⚡ Kiếm Khí Trảm (20 MP)</button>
+        <button class="btn" id="b-act-skill2">🔥 Liệt Diễm Chưởng (35 MP)</button>
+        <button class="btn" id="b-act-skill3">🛡️ Kim Cương Khiên (25 MP)</button>
+        <button class="btn" id="b-act-heal">💊 Uống Đan Trị Thương</button>
+        <button class="btn gold" id="b-act-auto">⚡ Đấu Tự Động / Kết Thúc</button>
+      </div>
+
+      <!-- Bảng kết thúc trận chiến (ẩn khi đang đánh) -->
+      <div class="battle-result-overlay" id="battle-result-overlay" hidden>
+        <div class="battle-result-title" id="battle-result-title">CHIẾN THẮNG!</div>
+        <div class="battle-loot-list" id="battle-loot-list"></div>
+        <button class="btn gold wide" id="battle-btn-close">Tiếp Tục Tu Luyện</button>
+      </div>
+    </dialog>
+
+    <!-- ════════════════════ DIALOG: ĐỘT PHÁ CẢNH GIỚI ════════════════════ -->
+    <dialog id="breakthrough-dialog">
+      <button class="dialog-close icon-btn" data-close aria-label="Đóng">
+        <svg><use href="#i-close" /></svg>
+      </button>
+      <span class="eyebrow" style="color: var(--gold);">XUNG QUAN PHÁ CẢNH</span>
+      <h2>Đột Phá Cảnh Giới</h2>
+      <p class="muted" style="margin-bottom: 14px;">Chân khí trong đan điền đã viên mãn. Hãy xung phá bế tắc để bước lên bậc thang mới!</p>
+
+      <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span>Cảnh giới đích:</span>
+          <strong id="bt-target-realm" style="color: var(--gold); font-size: 14px;">—</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span>Tỷ lệ thành công:</span>
+          <strong id="bt-success-rate" style="color: #8cbaa0; font-size: 14px;">85%</strong>
+        </div>
+        <div style="margin-top: 10px;">
+          <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px;">Đan dược hỗ trợ đột phá:</label>
+          <select id="bt-pill-select" style="width: 100%; padding: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; color: var(--text);">
+            <option value="">(Không dùng đan hộ trợ)</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn green wide" id="bt-confirm-btn">
+        <svg><use href="#i-star" /></svg> Bắt Đầu Đột Phá
+      </button>
+    </dialog>
+
+    <!-- ════════════════════ DIALOG: CHI TIẾT VẬT PHẨM ════════════════════ -->
+    <dialog id="item-dialog"></dialog>
+
+    <!-- ════════════════════ DIALOG: ĐĂNG KÝ NHẬP ĐẠO ════════════════════ -->
     <dialog id="register-dialog">
       <button class="dialog-close icon-btn" data-close aria-label="Đóng">
-        <svg><use href="#i-close" /></svg></button
-      ><span class="eyebrow">TRƯỚC CỬA ĐẠO</span>
+        <svg><use href="#i-close" /></svg>
+      </button>
+      <span class="eyebrow">TRƯỚC CỬA ĐẠO</span>
       <h2>Khai danh nhập thế</h2>
       <p class="muted">Mỗi con đường đều bắt đầu từ một cái tên.</p>
       <form id="register-form">
@@ -483,7 +564,8 @@
       </form>
       <small class="muted" id="register-mode"></small>
     </dialog>
-    <dialog id="item-dialog"></dialog>
+
+    <!-- ════════════════════ DIALOG: THÊM ════════════════════ -->
     <dialog id="more-dialog">
       <button class="dialog-close icon-btn" data-close aria-label="Đóng">
         ×
@@ -491,17 +573,19 @@
       <h2>Thiên cơ các</h2>
       <div class="more-links">
         <button data-page="craft">Đan phòng</button
-        ><button data-page="sect">Tông môn</button
         ><button data-page="codex">Vạn vật phổ</button
+        ><button data-command="/nv">Xem bảng chỉ số</button
         ><button data-command="/nhatky">Nhật ký tu hành</button
         ><button data-command="/chidan">Chỉ dẫn nhập môn</button>
       </div>
     </dialog>
+
+    <!-- ════════════════════ DIALOG: NHẬT KÝ HÀNH ĐỘNG ════════════════════ -->
     <dialog id="journal-dialog" class="journal-dialog">
       <div class="journal-heading">
         <div>
           <span class="eyebrow">TỪNG BƯỚC TIÊN ĐỒ</span>
-          <h2>Chuyện trên đường tu</h2>
+          <h2>Nhật Ký Hành Động & Lệnh</h2>
         </div>
         <button class="icon-btn" data-close aria-label="Đóng nhật ký">
           <svg><use href="#i-close" /></svg>
@@ -510,13 +594,13 @@
       <div id="chat" aria-live="polite">
         <div class="chat-empty">
           <svg><use href="#i-scroll" /></svg>
-          <p>Những câu chuyện của ngươi sẽ được ghi lại tại đây.</p>
+          <p>Mọi hành động và lệnh tu tiên sẽ được ghi lại tại đây.</p>
         </div>
       </div>
       <form id="command-form">
         <input
           id="inp"
-          placeholder="Nhập lời đáp hoặc /menu…"
+          placeholder="Nhập lệnh (/menu, /nv, /sanquai, /thap)…"
           aria-label="Lệnh hoặc lời đáp"
           maxlength="500"
           autocomplete="off"
@@ -525,6 +609,7 @@
         </button>
       </form>
     </dialog>
+
     <div id="bao" role="status" hidden></div>
     <div id="action-effect" aria-hidden="true"></div>
     <script src="/dong.js"></script>

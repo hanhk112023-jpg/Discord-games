@@ -252,6 +252,11 @@ class Long:
         D("timduoc", _lenh_timduoc, "hái thuốc", True)
         D("duykysi", _lenh_duykysi, "đo sức kẻ qua đường", True)
         D("sotay", _lenh_sotay, "sổ tay công thức", True)
+        D("sanquai", _lenh_sanquai, "săn yêu thú cày cuốc tu vi & trang bị", True, ("san", "danhquai"))
+        D("tranthap", _lenh_tranthap, "khiêu chiến Trấn Yêu Tháp", True, ("thap", "leothap"))
+        D("trangbi", _lenh_trangbi, "trang bị pháp bảo vào người: /trangbi <tên>", True, ("mac",))
+        D("thaodo", _lenh_thaodo, "tháo trang bị: /thaodo <vị trí>", True, ("thao",))
+        D("cuonghoa", _lenh_cuonghoa, "cường hóa trang bị bằng linh thạch: /cuonghoa <tên>", True, ("ch",))
         D("luyendan", _lenh_luyendan, "mở lò luyện đan", True, ("ld",))
         D("luyenkhi", _lenh_luyenkhi, "quai búa rèn khí", True, ("lk",))
         D("deo", _lenh_deo, "nhỏ tinh huyết nhận chủ pháp bảo", True)
@@ -800,20 +805,17 @@ async def _lenh_dotpha(core, tin, ts, arg):
 
 
 async def _lenh_duongthuong(core, tin, ts, arg):
-    from ..vanphong import khac_gio, mo_ta_than_the
-    kq = KetQua(tieu_de="Dưỡng thương")
-    if ts.dang_bi_thuong:
-        kq.them("Ngươi trải áo xuống nền hang, nằm nghiêng, tay đè lên chỗ xương sườn gãy. "
-                "Trần hang có một vệt nước rỉ, nhỏ từng giọt xuống một vũng nhỏ. "
-                "Ngươi đếm tới giọt thứ hai trăm thì thôi đếm.")
-        kq.them(f"Còn {khac_gio(ts.con_bao_lau_duong_thuong)} nữa mới cử động mạnh được. "
-                "Liễm Thương Đan sẽ rút ngắn chuyện này, nếu túi ngươi còn đan.")
-    else:
-        ts.than_the = min(100, ts.than_the + 10)
-        await core.kho.luu(ts)
-        kq.them("Ngươi ngồi tựa vách, nhắm mắt, để chân khí tự đi một vòng chậm rãi khắp châu thân, "
-                "vá lại những chỗ rách nhỏ mà mắt không nhìn thấy.")
-        kq.them(mo_ta_than_the(ts.than_the, False))
+    ts.thuong_toi = 0
+    ts.than_the = 100
+    await core.kho.luu(ts)
+    cs = ts.tinh_chi_so()
+    kq = KetQua(tieu_de="Vận khí điều tức — Hồi phục toàn diện")
+    kq.them(
+        f"💖 **Vận chuyển chu thiên trị thương thành công!**\n"
+        f"• ❤️ Khí Huyết (HP): `{cs['hp_max']:,} / {cs['hp_max']:,}` (100%)\n"
+        f"• 🔷 Chân Khí (MP): `{cs['mp_max']:,} / {cs['mp_max']:,}`\n"
+        f"Thân thể sung mãn, kinh mạch thông suốt. Đạo hữu đã sẵn sàng tiếp tục chiến đấu và tu luyện!"
+    )
     return TraLoi.cua(kq)
 
 
@@ -865,6 +867,115 @@ async def _lenh_timduoc(core, tin, ts, arg):
 
 async def _lenh_duykysi(core, tin, ts, arg):
     return TraLoi.cua(await he_phieu.duy_ky_si(core.kho, ts, core.rng, await core.hs()))
+
+
+# ── săn quái & trấn yêu tháp ──
+
+async def _lenh_sanquai(core, tin, ts, arg):
+    from ..he import sanquai
+    if not arg:
+        kq = KetQua(tieu_de="Sơn Dã Trảm Yêu — Chọn mục tiêu săn quái")
+        kq.them("🌲 **DANH SÁCH BÃI SĂN THEO CẢNH GIỚI:**\n")
+        hang = []
+        for kv_k, kv_v in sanquai.KHU_VUC.items():
+            if ts.canh_gioi >= kv_v["canh_gioi_yeu_cau"]:
+                kq.them(f"📍 **{kv_v['ten']}** ({kv_v['canh_gioi_ten']}):")
+                for mq in kv_v["quai"]:
+                    q = sanquai.DANH_SACH_QUAI.get(mq)
+                    if q:
+                        kq.them(f"• `/sanquai {q.ma}` — **{q.ten}** (HP: {q.hp:,} | Công: {q.cong} | +{q.exp:,} Tu vi)")
+                        hang.append((f"⚔️ {q.ten}", f"l:sanquai {q.ma}"))
+        kq.them("\nGõ `/sanquai <mã quái>` để khiêu chiến ngay!")
+        return TraLoi.cua(kq, _dong(hang, 2) or None)
+
+    ma_quai = arg.strip().lower()
+    kq = await sanquai.san_quai(core.kho, ts, ma_quai, core.rng)
+    return TraLoi.cua(kq)
+
+
+async def _lenh_tranthap(core, tin, ts, arg):
+    from ..he import sanquai
+    kq = await sanquai.vuot_thap(core.kho, ts, core.rng)
+    return TraLoi.cua(kq)
+
+
+async def _lenh_trangbi(core, tin, ts, arg):
+    from ..data import vatpham
+    if not arg:
+        tb = ts.lay_trang_bi()
+        ch = ts.lay_cuong_hoa()
+        kq = KetQua(tieu_de="Trang bị hiện tại")
+        slot_names = {"vu_khi": "Vũ Khí", "giap": "Chiến Giáp", "phap_bao": "Pháp Bảo", "ngoc_boi": "Ngọc Bội"}
+        lines = []
+        for s_k, s_v in slot_names.items():
+            ma = tb.get(s_k)
+            cap = ch.get(ma, 0)
+            cap_str = f" (+{cap})" if cap > 0 else ""
+            ten = f"{vatpham.ten(ma)}{cap_str}" if ma else "*(Trống)*"
+            lines.append(f"• **{s_v}:** {ten}")
+        kq.them("\n".join(lines))
+        kq.them("\nDùng lệnh `/trangbi <tên vật phẩm>` để trang bị món đồ từ túi càn khôn.")
+        return TraLoi.cua(kq)
+
+    ma = he_giao.tim_hang(arg)
+    if not ma:
+        return TraLoi.cua(KetQua(van=[f"Không tìm thấy vật phẩm nào tên gần giống *“{arg}”*."], thanh_cong=False))
+    vp = vatpham.lay(ma)
+    slot = vp.slot_trang_bi if vp else ""
+    if not slot:
+        return TraLoi.cua(KetQua(van=[f"**{vp.ten}** không phải là trang bị có thể mang lên người."], thanh_cong=False))
+    so = await core.kho.dem_vat(ts.user_id, ma)
+    if so <= 0:
+        return TraLoi.cua(KetQua(van=[f"Ngươi không có **{vp.ten}** trong túi càn khôn."], thanh_cong=False))
+
+    ts.dat_trang_bi(slot, ma)
+    await core.kho.luu(ts)
+    cs = ts.tinh_chi_so()
+    kq = KetQua(tieu_de="Trang bị thành công")
+    kq.them(f"⚔️ Đã trang bị **{vp.ten}** vào vị trí **{slot}**!")
+    kq.them(f"📊 Lực chiến mới: **{cs['luc_chien']:,}** (Công: {cs['cong']} | Thủ: {cs['thu']} | Máu: {cs['hp_max']})")
+    return TraLoi.cua(kq)
+
+
+async def _lenh_thaodo(core, tin, ts, arg):
+    slot = arg.strip().lower()
+    if slot not in ("vu_khi", "giap", "phap_bao", "ngoc_boi"):
+        return TraLoi.cua(KetQua(van=["Vị trí không hợp lệ. Chọn: `vu_khi`, `giap`, `phap_bao`, hoặc `ngoc_boi`."], thanh_cong=False))
+    da_thao = ts.thao_trang_bi(slot)
+    await core.kho.luu(ts)
+    if not da_thao:
+        return TraLoi.cua(KetQua(van=["Vị trí này đang để trống."], thanh_cong=False))
+    vp = vatpham.lay(da_thao)
+    ten = vp.ten if vp else da_thao
+    return TraLoi.cua(KetQua(van=[f"Đã tháo **{ten}** khỏi vị trí **{slot}**."]))
+
+
+async def _lenh_cuonghoa(core, tin, ts, arg):
+    from ..data import vatpham
+    if not arg:
+        return TraLoi.cua(KetQua(van=["Gõ `/cuonghoa <tên trang bị>` để nâng cấp trang bị lên +1, +2..."]))
+    ma = he_giao.tim_hang(arg)
+    if not ma:
+        return TraLoi.cua(KetQua(van=[f"Không tìm thấy trang bị *“{arg}”*."], thanh_cong=False))
+    vp = vatpham.lay(ma)
+    if not vp or not vp.slot_trang_bi:
+        return TraLoi.cua(KetQua(van=[f"**{vp.ten if vp else arg}** không phải trang bị để cường hóa."], thanh_cong=False))
+    ch = ts.lay_cuong_hoa()
+    cap = ch.get(ma, 0)
+    if cap >= 10:
+        return TraLoi.cua(KetQua(van=[f"**{vp.ten}** đã đạt cấp cường hóa tối đa (+10)!"], thanh_cong=False))
+    chi_phi = int(60 * (vp.pham ** 1.4) * (cap + 1))
+    if ts.linh_thach < chi_phi:
+        return TraLoi.cua(KetQua(van=[f"Không đủ linh thạch! Cần **{chi_phi:,} Linh Thạch** để cường hóa lên +{cap + 1}."], thanh_cong=False))
+
+    ts.linh_thach -= chi_phi
+    ts.dat_cuong_hoa(ma, cap + 1)
+    await core.kho.luu(ts)
+    cs = ts.tinh_chi_so()
+    kq = KetQua(tieu_de=f"Cường Hóa Thành Công — {vp.ten} (+{cap + 1})")
+    kq.them(f"✨ Chúc mừng! **{vp.ten}** đã được cường hóa lên cấp **+{cap + 1}**!")
+    kq.them(f"📊 Thuộc tính trang bị tăng 15%! Lực chiến mới: **{cs['luc_chien']:,}**")
+    return TraLoi.cua(kq)
 
 
 # ── luyện chế ──
