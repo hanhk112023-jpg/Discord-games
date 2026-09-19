@@ -99,7 +99,52 @@ CREATE TABLE IF NOT EXISTS thien_bien (
     PRIMARY KEY (guild_id, ma)
 );
 
+CREATE TABLE IF NOT EXISTS boss_hien (          -- yêu vương đang hiện thế (mỗi thế giới một con)
+    guild_id   INTEGER PRIMARY KEY,
+    ma         TEXT NOT NULL,
+    huyet      INTEGER NOT NULL,                -- nguyên khí còn lại
+    huyet_max  INTEGER NOT NULL,
+    bat_dau    INTEGER NOT NULL,
+    luot_cuoi  INTEGER NOT NULL DEFAULT 0,
+    ke_chot    INTEGER NOT NULL DEFAULT 0,      -- ai chém nhát cuối
+    ke_goi     INTEGER NOT NULL DEFAULT 0       -- ai triệu nó ra (0 = trời tự xếp)
+);
+
+CREATE TABLE IF NOT EXISTS boss_con (          -- vết thương do từng người để lại
+    guild_id   INTEGER NOT NULL,
+    user_id    INTEGER NOT NULL,
+    ten        TEXT NOT NULL DEFAULT '',
+    sat_thuong INTEGER NOT NULL DEFAULT 0,
+    so_lan     INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS thach_dau (          -- lời thách PK đang treo
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id INTEGER NOT NULL,
+    a_id     INTEGER NOT NULL,
+    a_ten    TEXT NOT NULL,
+    b_id     INTEGER NOT NULL,
+    b_ten    TEXT NOT NULL,
+    cuoc     INTEGER NOT NULL DEFAULT 0,
+    sinh_tu  INTEGER NOT NULL DEFAULT 0,
+    luc      INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS danh_thiep (         -- Telegram: nơi gửi thư cho từng tu sĩ
+    user_id  INTEGER PRIMARY KEY,
+    chat_id  INTEGER NOT NULL,
+    ten      TEXT NOT NULL DEFAULT '',
+    luu_luc  INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS thoi_muc (           -- mốc thời gian lặt vặt của thế giới
+    khoa     TEXT PRIMARY KEY,
+    gia_tri  INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_nhat_ky_user ON nhat_ky(user_id, id DESC);
+CREATE INDEX IF NOT EXISTS idx_thach_b ON thach_dau(b_id, luc);
 """
 
 
@@ -239,6 +284,8 @@ class Kho:
     async def xoa_tu_si(self, user_id: int) -> None:
         for bang in ("tu_si", "tui_do", "so_tay", "nguoi_lanh", "nhat_ky", "viec_mon"):
             await self.conn.execute(f"DELETE FROM {bang} WHERE user_id=?", (user_id,))
+        await self.conn.execute("DELETE FROM boss_con WHERE user_id=?", (user_id,))
+        await self.conn.execute("DELETE FROM thach_dau WHERE a_id=? OR b_id=?", (user_id, user_id))
         await self.conn.commit()
 
     async def bang_danh_vong(self, gioi_han: int = 10) -> list[TuSi]:
@@ -416,3 +463,175 @@ class Kho:
         rows = await cur.fetchall()
         await cur.close()
         return [int(r[0]) for r in rows]
+
+    async def dinh_the_gioi(self, guild_id: int = 0) -> tuple[int, int]:
+        """(bậc cao nhất đang có người ngồi, số người) — dùng để chọn boss vừa sức."""
+        sql = "SELECT MAX(canh_gioi), COUNT(*) FROM tu_si"
+        args: tuple = ()
+        if guild_id:
+            sql += " WHERE guild_id=?"
+            args = (guild_id,)
+        cur = await self.conn.execute(sql, args)
+        row = await cur.fetchone()
+        await cur.close()
+        return int(row[0] or 0), int(row[1] or 0)
+
+    async def tim_theo_ten(self, ten: str, loai_tru: int | None = None) -> TuSi | None:
+        """Tìm tu sĩ theo đạo hiệu: khớp trước, khớp một phần sau."""
+        ten = (ten or "").strip()
+        if not ten:
+            return None
+        where, args = "LOWER(ten)=?", (ten.lower(),)
+        if loai_tru is not None:
+            where += " AND user_id<>?"
+            args += (loai_tru,)
+        cur = await self.conn.execute(f"SELECT * FROM tu_si WHERE {where}", args)
+        row = await cur.fetchone()
+        await cur.close()
+        if row is None:
+            like, largs = "ten LIKE ?", (f"%{ten}%",)
+            if loai_tru is not None:
+                like += " AND user_id<>?"
+                largs += (loai_tru,)
+            cur = await self.conn.execute(f"SELECT * FROM tu_si WHERE {like} LIMIT 2", largs)
+            rows = await cur.fetchall()
+            await cur.close()
+            if len(rows) == 1:
+                row = rows[0]
+        if row is None:
+            return None
+        return TuSi(**{k: row[k] for k in row.keys()})
+
+    # ─────────── chiến trường yêu vương ───────────
+    async def boss_lay(self, guild_id: int) -> dict[str, Any] | None:
+        cur = await self.conn.execute("SELECT * FROM boss_hien WHERE guild_id=?", (guild_id,))
+        row = await cur.fetchone()
+        await cur.close()
+        return dict(row) if row else None
+
+    async def boss_dat(self, guild_id: int, ma: str, huyet: int, ke_goi: int = 0) -> None:
+        now = int(time.time())
+        await self.conn.execute(
+            "INSERT INTO boss_hien (guild_id, ma, huyet, huyet_max, bat_dau, luot_cuoi, ke_chot, ke_goi) "
+            "VALUES (?,?,?,?,?,?,0,?) ON CONFLICT(guild_id) DO UPDATE SET "
+            "ma=excluded.ma, huyet=excluded.huyet, huyet_max=excluded.huyet_max, "
+            "bat_dau=excluded.bat_dau, luot_cuoi=excluded.luot_cuoi, ke_chot=0, ke_goi=excluded.ke_goi",
+            (guild_id, ma, huyet, huyet, now, now, ke_goi),
+        )
+        await self.conn.execute("DELETE FROM boss_con WHERE guild_id=?", (guild_id,))
+        await self.conn.commit()
+
+    async def boss_giam_huyet(self, guild_id: int, user_id: int, ten: str, sat_thuong: int) -> int:
+        """Trừ nguyên khí của boss, ghi công kẻ ra đòn. Trả về nguyên khí còn lại."""
+        cur = await self.conn.execute(
+            "UPDATE boss_hien SET huyet = MAX(0, huyet - ?), luot_cuoi=?, ke_chot=? WHERE guild_id=?",
+            (sat_thuong, int(time.time()), user_id, guild_id),
+        )
+        await cur.close()
+        await self.conn.execute(
+            "INSERT INTO boss_con (guild_id, user_id, ten, sat_thuong, so_lan) VALUES (?,?,?,?,1) "
+            "ON CONFLICT(guild_id, user_id) DO UPDATE SET sat_thuong = sat_thuong + excluded.sat_thuong, "
+            "so_lan = so_lan + 1, ten = excluded.ten",
+            (guild_id, user_id, ten, sat_thuong),
+        )
+        cur = await self.conn.execute("SELECT huyet FROM boss_hien WHERE guild_id=?", (guild_id,))
+        row = await cur.fetchone()
+        await cur.close()
+        await self.conn.commit()
+        return int(row[0]) if row else 0
+
+    async def boss_ds(self, guild_id: int) -> list[dict[str, Any]]:
+        cur = await self.conn.execute(
+            "SELECT * FROM boss_con WHERE guild_id=? ORDER BY sat_thuong DESC", (guild_id,)
+        )
+        rows = await cur.fetchall()
+        await cur.close()
+        return [dict(r) for r in rows]
+
+    async def boss_xoa(self, guild_id: int) -> None:
+        await self.conn.execute("DELETE FROM boss_hien WHERE guild_id=?", (guild_id,))
+        await self.conn.execute("DELETE FROM boss_con WHERE guild_id=?", (guild_id,))
+        await self.conn.commit()
+
+    # ─────────── lời thách PK ───────────
+    async def thach_tao(self, guild_id: int, a_id: int, a_ten: str, b_id: int, b_ten: str,
+                        cuoc: int = 0, sinh_tu: bool = False) -> int:
+        cur = await self.conn.execute(
+            "INSERT INTO thach_dau (guild_id, a_id, a_ten, b_id, b_ten, cuoc, sinh_tu, luc) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            (guild_id, a_id, a_ten, b_id, b_ten, int(cuoc), 1 if sinh_tu else 0, int(time.time())),
+        )
+        await self.conn.commit()
+        return int(cur.lastrowid)
+
+    async def thach_lay(self, ma: int) -> dict[str, Any] | None:
+        cur = await self.conn.execute("SELECT * FROM thach_dau WHERE id=?", (ma,))
+        row = await cur.fetchone()
+        await cur.close()
+        return dict(row) if row else None
+
+    async def thach_cua_toi(self, user_id: int) -> tuple[list[dict], list[dict]]:
+        """(đang chờ ta ứng chiến, ta gửi đi chưa có hồi âm)."""
+        cur = await self.conn.execute(
+            "SELECT * FROM thach_dau WHERE b_id=? ORDER BY id DESC", (user_id,))
+        cho = [dict(r) for r in await cur.fetchall()]
+        await cur.close()
+        cur = await self.conn.execute(
+            "SELECT * FROM thach_dau WHERE a_id=? ORDER BY id DESC", (user_id,))
+        gui = [dict(r) for r in await cur.fetchall()]
+        await cur.close()
+        return cho, gui
+
+    async def thach_xoa(self, ma: int) -> None:
+        await self.conn.execute("DELETE FROM thach_dau WHERE id=?", (ma,))
+        await self.conn.commit()
+
+    async def thach_het_gio(self) -> list[dict[str, Any]]:
+        """Những lời thách quá hạn — xoá luôn, coi như chưa từng buông lời."""
+        han = int(time.time()) - config.THACH_THOI_HAN
+        cur = await self.conn.execute("SELECT * FROM thach_dau WHERE luc<?", (han,))
+        rows = [dict(r) for r in await cur.fetchall()]
+        await cur.close()
+        if rows:
+            await self.conn.execute("DELETE FROM thach_dau WHERE luc<?", (han,))
+            await self.conn.commit()
+        return rows
+
+    # ─────────── danh thiếp Telegram ───────────
+    async def danh_thiep_luu(self, user_id: int, chat_id: int, ten: str = "") -> None:
+        await self.conn.execute(
+            "INSERT INTO danh_thiep (user_id, chat_id, ten, luu_luc) VALUES (?,?,?,?) "
+            "ON CONFLICT(user_id) DO UPDATE SET chat_id=excluded.chat_id, "
+            "ten=excluded.ten, luu_luc=excluded.luu_luc",
+            (user_id, chat_id, ten, int(time.time())),
+        )
+        await self.conn.commit()
+
+    async def danh_thiep_cua(self, user_id: int) -> int | None:
+        cur = await self.conn.execute("SELECT chat_id FROM danh_thiep WHERE user_id=?", (user_id,))
+        row = await cur.fetchone()
+        await cur.close()
+        return int(row[0]) if row else None
+
+    async def danh_thiep_all(self) -> list[tuple[int, int]]:
+        """(user_id, chat_id) không trùng — để gieo tin khắp nhân gian."""
+        cur = await self.conn.execute(
+            "SELECT user_id, MAX(chat_id) FROM danh_thiep GROUP BY user_id")
+        rows = await cur.fetchall()
+        await cur.close()
+        return [(int(r[0]), int(r[1])) for r in rows]
+
+    # ─────────── mốc thời gian ───────────
+    async def thoi_muc_xem(self, khoa: str) -> int | None:
+        cur = await self.conn.execute("SELECT gia_tri FROM thoi_muc WHERE khoa=?", (khoa,))
+        row = await cur.fetchone()
+        await cur.close()
+        return int(row[0]) if row else None
+
+    async def thoi_muc_dat(self, khoa: str, gia_tri: int) -> None:
+        await self.conn.execute(
+            "INSERT INTO thoi_muc (khoa, gia_tri) VALUES (?,?) "
+            "ON CONFLICT(khoa) DO UPDATE SET gia_tri=excluded.gia_tri",
+            (khoa, int(gia_tri)),
+        )
+        await self.conn.commit()

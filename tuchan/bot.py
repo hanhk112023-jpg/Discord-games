@@ -21,6 +21,7 @@ CAC_COG = (
     "tuchan.cogs.luyenche",
     "tuchan.cogs.tongmon",
     "tuchan.cogs.doidau",
+    "tuchan.cogs.boss",
     "tuchan.cogs.giaothuong",
     "tuchan.cogs.thienbien",
     "tuchan.cogs.chidan",

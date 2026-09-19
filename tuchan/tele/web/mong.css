@@ -1,0 +1,51 @@
+/* Màng phủ Mini App — mô phỏng nền/chat của Telegram, tự theo biến chủ đề do SDK nhét vào body. */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--tg-theme-bg-color, #0e1621);
+  color: var(--tg-theme-text-color, #e9eef4);
+  font: 15px/1.55 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  display: flex; flex-direction: column;
+  overscroll-behavior: none;
+}
+main {
+  flex: 1; overflow-y: auto; padding: 14px 10px 6px; display: flex; flex-direction: column; gap: 7px;
+  background: var(--tg-theme-secondary-bg-color, #17212b);
+}
+.bong {
+  max-width: 88%; align-self: flex-start; background: var(--tg-theme-bg-color, #182533);
+  border: 1px solid rgba(255,255,255,.045);
+  padding: 8px 12px; border-radius: 14px 14px 14px 5px; white-space: pre-wrap; overflow-wrap: anywhere;
+  box-shadow: 0 1px 2px rgba(0,0,0,.35);
+}
+.bong.me { align-self: flex-end; border-radius: 14px 14px 5px 14px;
+  background: var(--tg-theme-button-color, #2b527e); color: var(--tg-theme-button-text-color, #fff); }
+.bong b { color: #ffe6b0; } .bong.me b { color: #fff; }
+.bong i { color: #b6c7da; opacity: .95; }
+.bong code { background: rgba(0,0,0,.28); padding: 1px 5px; border-radius: 4px; color: #ffd479; font-size: .92em; }
+.bong img, .bong video { max-width: 100%; border-radius: 9px; margin: 6px 0 2px; display: block; background: #000; }
+.hangnut { display: flex; flex-direction: column; gap: 4px; align-self: flex-start; max-width: 88%; margin-top: -1px; }
+.hangnut .day { display: flex; flex-wrap: wrap; gap: 4px; }
+.hangnut button {
+  flex: 1 1 auto; min-width: 120px; background: rgba(255,255,255,.055); color: var(--tg-theme-link-color, #8fc3ff);
+  border: 1px solid rgba(255,255,255,.05); border-radius: 9px; padding: 9px 12px; font-size: 13.5px;
+  cursor: pointer; transition: background .12s ease;
+}
+.hangnut button:active { background: rgba(255,255,255,.13); }
+footer {
+  display: flex; gap: 7px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  background: var(--tg-theme-bg-color, #17212b); border-top: 1px solid rgba(0,0,0,.3);
+}
+footer input {
+  flex: 1; background: var(--tg-theme-secondary-bg-color, #0e1621); color: inherit;
+  border: 1px solid rgba(255,255,255,.07); border-radius: 20px; padding: 11px 15px; font-size: 15px; outline: none;
+}
+footer button {
+  flex: 0 0 auto; width: 42px; height: 42px; border-radius: 50%; border: 0; cursor: pointer;
+  background: var(--tg-theme-button-color, #2b527e); color: var(--tg-theme-button-text-color, #fff); font-size: 16px;
+}
+#bao {
+  position: fixed; left: 50%; bottom: calc(70px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+  background: rgba(0,0,0,.78); color: #ffe9bd; padding: 8px 16px; border-radius: 16px; font-size: 13px;
+  max-width: 86vw; z-index: 9; pointer-events: none; transition: opacity .35s ease; 
+}
