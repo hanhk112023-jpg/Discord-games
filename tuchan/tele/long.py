@@ -76,6 +76,53 @@ class Lo:
         pass
 
 
+class LoNhip(Lo):
+    """Miệng ghép: một câu chuyện kể ra là vào cả phòng chat Telegram lẫn cửa động.
+
+    Mỗi vận chuyển giữ phiếu tin của riêng mình; tin sửa chỉ tới được nơi sinh ra nó,
+    bên kia đứng ngoài cuộc — ai sửa không được thì đọc tin cũ, chẳng mất gì."""
+
+    def __init__(self, *los: Lo):
+        self.cac = [l for l in los if l is not None]
+
+    @property
+    def MA_URL_NUT(self) -> bool:  # ai trong tốp biết render nút url: là được
+        return any(getattr(l, "MA_URL_NUT", False) for l in self.cac)
+
+    async def gui(self, chat_id: int, trang) -> int | None:
+        thu = None
+        for l in self.cac:
+            try:
+                ma = await l.gui(chat_id, trang)
+                thu = thu if thu is not None else ma
+            except Exception:  # một cái miệng lạc (mạng Telegram chập) không được bịt các miệng khác
+                continue
+        return thu
+
+    async def sua(self, chat_id: int, msg_id, trang) -> None:
+        for l in self.cac:
+            try:
+                await l.sua(chat_id, msg_id, trang)
+            except Exception:
+                continue
+
+    async def bao(self, user_id: int, text: str) -> None:
+        for l in self.cac:
+            try:
+                await l.bao(user_id, text)
+            except Exception:
+                continue
+
+    async def doi_uid(self, chat_id: int, uid: int) -> None:
+        for l in self.cac:
+            hook = getattr(l, "doi_uid", None)
+            if hook is not None:
+                try:
+                    await hook(chat_id, uid)
+                except Exception:
+                    continue
+
+
 class Long:
     """Bộ não của bot: một thế giới, một giao ước lệnh."""
 
@@ -163,6 +210,7 @@ class Long:
         D = self._dang
         D("start", _lenh_menu, "mở menu", False)
         D("menu", _lenh_menu, "mở menu", False)
+        D("mini", _lenh_mini, "mở lối web — động tu luyện trong Telegram", False)
         D("dangky", _lenh_dangky, "nhập đạo", False, ("nhapdao", "battau"))
         D("chuyenthe", _lenh_chuyenthe, "xin kiếp khác cho kẻ đã khuất", False)
         D("nhanvat", _lenh_nhanvat, "nhìn lại chính mình", True, ("nv",))
@@ -269,6 +317,8 @@ class Long:
             [("🏯 Tông môn", "l:monphai"), ("📋 Việc môn", "l:nhiemvu"), ("🌌 Trời", "l:troi")],
             [("🕯 Chuyển thế", "l:chuyenthe"), ("🪧 Bia cảnh giới", "l:canhgioi"), ("📜 Chỉ dẫn", "l:chidan")],
         ]
+        if config.TELE_MINIAPP_URL and getattr(self.lo, "MA_URL_NUT", False):
+            hang.append([("⛩ Vào động — lối web", "url:" + config.TELE_MINIAPP_URL)])
         return TraLoi.cua(kq, hang)
 
     async def _chua_nhap_dao(self, tin: TinDen) -> TraLoi:
@@ -672,6 +722,21 @@ def _vat_cua_tu(arg: str) -> tuple[str, str | None, int]:
 
 async def _lenh_menu(core, tin, ts, arg):
     return await core._menu(tin)
+
+
+async def _lenh_mini(core, tin, ts, arg):
+    if not config.TELE_MINIAPP_URL:
+        return TraLoi.cua(KetQua(
+            tieu_de="Chưa có cửa động",
+            van=["Trời đất bên này chỉ có chữ và nút bấm. Cái động khô dành cho lối web "
+                 "chưa được khoét — người giữ vườn chưa mở cổng. Cứ chơi ở đây, sổ sách "
+                 "một đường như nhau."],
+            thanh_cong=False))
+    kq = KetQua(tieu_de="Cửa động", anh="bia_tien_do.png",
+                van=["Sau lưng núi có một cái động khô, bàn đá đã lau, đèn dầu đã thắp. "
+                     "Vào đó ngồi — cùng một thế giới, cùng một cuốn sổ, chỉ khác là "
+                     "ngươi bấm tay thay vì gõ chữ."])
+    return TraLoi.cua(kq, [[("🏮 Vào động", "url:" + config.TELE_MINIAPP_URL)]])
 
 
 # ── tu luyện ──

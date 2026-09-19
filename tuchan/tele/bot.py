@@ -15,7 +15,7 @@ from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import (BotCommand, CallbackQuery, FSInputFile,
                            InlineKeyboardButton, InlineKeyboardMarkup,
-                           Message)
+                           MenuButtonWebApp, Message, WebAppInfo)
 
 from .. import config
 from ..db import Kho
@@ -45,12 +45,15 @@ CAC_LENH_MENU = [
     ("monphai", "các tông môn"),
     ("troi", "thiên biến"),
     ("chidan", "lời lão bán trà"),
+    ("mini", "mở lối web — động tu luyện trong Telegram"),
 ]
 
 
 class LoTelegram(Lo):
     """Gửi Trang xuống Telegram: chữ thường → sendMessage; ảnh → sendPhoto;
     video → sendVideo (kèm chữ). Nút → InlineKeyboard."""
+
+    MA_URL_NUT = True  # lớp này biết render nút "url:" thành lối vào Mini App
 
     def __init__(self, bot: Bot):
         self.bot = bot
@@ -62,6 +65,10 @@ class LoTelegram(Lo):
         for row in hang:
             btns = []
             for label, cb in row:
+                if str(cb).startswith("url:"):
+                    btns.append(InlineKeyboardButton(text=label[:64],
+                                                     web_app=WebAppInfo(url=str(cb)[4:])))
+                    continue
                 cb = str(cb).encode("utf-8")[:60].decode("utf-8", "ignore")
                 btns.append(InlineKeyboardButton(text=label[:64], callback_data=cb))
             if btns:
@@ -115,6 +122,36 @@ class LoTelegram(Lo):
         pass
 
 
+async def mo_dong(bot: Bot, kho: Kho, url: str) -> None:
+    """Dựng cửa động: nút Menu toàn cục + một lời mời gửi tới những kẻ đã có tên trong sổ.
+
+    Đường dẫn tunnel đổi theo mỗi lần máy chủ thức dậy — ai đã được gửi lời mời thì
+    còn bấm tiếp, ai chưa kịp thấy thì `/mini` là chìa khóa dự phòng."""
+    try:
+        await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(
+            text="Vào động", web_app=WebAppInfo(url=url)))
+    except Exception as e:  # pragma: no cover
+        log.warning("Không dựng được nút menu: %s", e)
+    from .hien_thi import Trang
+    trang = Trang(html=(
+        "<b>⛩ Cửa động vừa mở.</b>\n\n"
+        "Sau lưng núi có một cái động khô, đặt sẵn bàn đá và đèn dầu. Ai lười gõ lệnh "
+        "thì vào đó ngồi — cũng chính thế giới này, cũng chính sổ sách này, chỉ khác "
+        "ngươi bấm tay thay vì gõ. Cửa sẽ khép khi trời sáng; hẹn qua <code>/menu</code>."
+    ), anh="bia_tien_do.png",
+        hang=[[("🏮 Vào động", "url:" + url)]])
+    bia = duong_dan_anh("bia_tien_do.png")
+    for uid, chat in await kho.danh_thiep_all():
+        try:
+            if bia is not None:
+                await bot.send_photo(chat, photo=FSInputFile(str(bia)),
+                                     caption=trang.html, parse_mode="HTML")
+            else:
+                await bot.send_message(chat, trang.html, parse_mode="HTML")
+        except Exception as e:  # pragma: no cover
+            log.debug("lời mời tới %s fail: %s", uid, e)
+
+
 def tao_long(kho: Kho, lo: Lo) -> Long:
     return Long(kho, config.TELE_GUILD, lo,
                 thu_duyen=False, admin_ids=config.TELE_ADMIN_IDS)
@@ -147,7 +184,9 @@ async def xu_ly_nut(cb: CallbackQuery, core: Long) -> None:
 
 # ───────────────────────── khởi động ─────────────────────────
 
-async def chay() -> None:
+async def chay(kho: Kho | None = None, lo_them=None, gan_core=None) -> None:
+    """Nâng bot Telegram. `lo_them`: miệng thứ hai (cửa động) nếu muốn một lõi hai miệng;
+    `gan_core`: hàm nhận lõi về tay — Mini App cần nó để lệnh web đi đúng luồng."""
     if not config.TELEGRAM_TOKEN:
         raise SystemExit(
             "Chưa có TELEGRAM_TOKEN.\n"
@@ -158,10 +197,15 @@ async def chay() -> None:
 
     bot = Bot(config.TELEGRAM_TOKEN,
               default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-    kho = Kho()
-    await kho.mo()
-    lo = LoTelegram(bot)
+    tu_kho = kho is None
+    if tu_kho:
+        kho = Kho()
+        await kho.mo()
+    from .long import LoNhip
+    lo = LoNhip(LoTelegram(bot), lo_them) if lo_them is not None else LoTelegram(bot)
     core = tao_long(kho, lo)
+    if gan_core is not None:
+        gan_core(core)
     dp = Dispatcher(core=core, kho=kho)
     dp.include_router(router)
     try:
@@ -172,6 +216,8 @@ async def chay() -> None:
         await bot.set_my_description("Tiên Đồ Vô Tận — tu chân bằng chữ, có đánh boss và PK.")
     except Exception:
         pass
+    if config.TELE_MINIAPP_URL:
+        await mo_dong(bot, kho, config.TELE_MINIAPP_URL)
 
     vong_tai = asyncio.create_task(vong.vong_tron_doi(core, bot))
     log.info("Đã nhập thế qua Telegram — guild diễn tập số %s", config.TELE_GUILD)
@@ -179,5 +225,6 @@ async def chay() -> None:
         await dp.start_polling(bot, allowed_updates=["message", "callback_query"])
     finally:
         vong_tai.cancel()
-        await kho.dong()
+        if tu_kho:
+            await kho.dong()
         await bot.session.close()

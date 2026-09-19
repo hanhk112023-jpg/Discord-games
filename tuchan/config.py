@@ -31,6 +31,10 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
 TELE_GUILD = int(os.getenv("TELE_GUILD", "1") or 1)
 # User id được phép triệu boss / gọi thiên biến bên Telegram (phân cách bằng dấu phẩy)
 TELE_ADMIN_IDS = {int(x) for x in os.getenv("TELE_ADMIN_IDS", "").replace(" ", "").split(",") if x.strip()}
+# Lối vào Mini App (https://… — BotFather muốn vậy). Để trống thì không có nút "Vào động".
+TELE_MINIAPP_URL = os.getenv("TELE_MINIAPP_URL", "").strip()
+# Cổng mà máy chủ Mini App nghe (tuchan/tele/mini.py)
+WEB_PORT = int(os.getenv("WEB_PORT", "8080"))
 
 # Chế độ "thu ngắn thời gian" dùng khi thử nghiệm / diễn tập.
 CAP_TOC = os.getenv("CAP_TOC", "0").strip().lower() in {"1", "true", "yes", "on"}
