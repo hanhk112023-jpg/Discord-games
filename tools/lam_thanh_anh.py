@@ -23,7 +23,7 @@ RA = GOC / "assets" / "thanh_anh"
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 
 W, H, FPS = 960, 540, 24
-CRF = "30"   # giữ tệp dưới 10 MB để Discord chịu nhận
+CRF = "30"   # giữ tệp dưới 10 MB để tải nhanh trong Telegram
 CHUYEN = 1.1  # thời lượng hoà hình giữa hai cảnh (giây)
 
 # Mỗi tác phẩm: tên tệp ra, danh sách tranh, tệp lời kể

@@ -1,21 +1,9 @@
 #!/usr/bin/env python3
-"""Động khô — backend của Telegram Mini App.
+"""Máy chủ Telegram Mini App: HTML, trạng thái game, lệnh và xác thực initData.
 
-Một tệp aiohttp nằm cạnh lõi `long.py`: khung chat trong Telegram mở ra bằng nút
-*Vào động*, và mọi thứ ngươi bấm ở đó đi thẳng vào cùng bộ máy, cùng cuốn sổ sinh tử
-mà bot dùng. Không có tầng trung gian, không có bản sao luật chơi.
-
-Ba điều lớp này chịu trách nhiệm, không cái nào thuộc về luật chơi:
-
-* **verify initData** — Telegram ký gói người dùng bằng HMAC của token bot
-  (chuẩn chính thức của Mini App); ký đúng mới được nhập danh.
-* **phiên âm không trạng thái** — cookie là bản HMAC tự ký, không có session table.
-  Máy chủ trên GitHub Actions sống thọ bằng một cái ổ đĩa tạm; mất hết bộ nhớ
-  là chuyện thường tình — người thật thì vẫn còn nguyên trong CSDL.
-* **vận chuyển Trang** — cùng giao ước `Lo` như bot Telegram: gui/sua, nút bấm, ảnh, video.
-
-    python -m tuchan.tele.web          # chạy một mình: khách lang thang, chưa cần token
-    python run_tele.py --mini          # bot + cửa động trong một tiến trình
+Cookie HttpOnly ký HMAC; khách dùng uid âm ngẫu nhiên, tài khoản Telegram dùng
+uid thật đã xác thực. Bot và Mini App dùng cùng Long/Kho, không nhân đôi luật chơi.
+Chạy bằng `python run.py` hoặc `python run_tele.py --mini`.
 """
 
 from __future__ import annotations
@@ -27,9 +15,10 @@ import json
 import logging
 import os
 import random
+import secrets
 import time
 from pathlib import Path
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qsl, urlsplit
 
 from aiohttp import web
 
@@ -43,12 +32,14 @@ log = logging.getLogger("tien.mini")
 DUONG_WEB = Path(__file__).parent / "web"
 TEN_COOK = "tien-qua-nguong"
 TUOI_PHIEN = 30 * 86400
+KHOA_PHIEN = os.getenv("MINI_SESSION_SECRET") or config.TELEGRAM_TOKEN or secrets.token_hex(32)
+CHO_KHACH = not config.TELEGRAM_TOKEN or os.getenv("TELE_ALLOW_GUEST") == "1"
 
 # ───────────────────────── ký & kiểm: initData, quá nguỡng, cookie ─────────────────────────
 
 
 def _ch(bao: str) -> bytes:
-    return hashlib.sha256(f"mini|{bao}|{config.TELEGRAM_TOKEN}".encode()).digest()
+    return hashlib.sha256(f"mini|{bao}|{KHOA_PHIEN}".encode()).digest()
 
 
 def kiem_dau_init(init: str) -> dict | None:
@@ -60,7 +51,7 @@ def kiem_dau_init(init: str) -> dict | None:
         chu_ky = parts.pop("hash", "")
         # auth_date ở lại trong chuỗi kiểm — chuẩn Telegram: mọi tham số trừ hash
         luc = int(parts.get("auth_date", "0"))
-        if time.time() - luc > 24 * 3600:
+        if not 0 <= time.time() - luc <= 24 * 3600:
             return None
         chuoi = "\n".join(f"{k}={v}" for k, v in sorted(parts.items()))
         khoa = hmac.new(b"WebAppData", config.TELEGRAM_TOKEN.encode(), hashlib.sha256).digest()
@@ -100,6 +91,8 @@ class LoMini(Lo):
     """Khung chat của một cửa sổ trình duyệt. Tin mới và tin sửa đều tính lượt
     (bộ đếm vọt) để bên web chỉ việc kéo tiếp, không cần biết tin nào bị sửa."""
 
+    MA_NGUON = "mini"
+
     def __init__(self):
         self.chat = {}      # chat -> [tin]
         self.cua = {}       # uid -> chat đang ngồi
@@ -113,6 +106,7 @@ class LoMini(Lo):
         self.dem += 1
         tin["c"] = self.dem
         self._noi(chat).append(tin)
+        del self.chat[chat][:-200]
 
     async def gui(self, chat_id: int, trang: Trang) -> int:
         self.dem += 1
@@ -120,7 +114,7 @@ class LoMini(Lo):
                "anh": trang.anh or "", "phim": trang.phim or "",
                "nut": [[{"l": a, "u": b} for a, b in hang] for hang in (trang.hang or [])]}
         self._dong(chat_id, tin)
-        return self.dem
+        return tin["id"]
 
     async def sua(self, chat_id: int, msg_id, trang: Trang) -> None:
         if msg_id is None:
@@ -144,7 +138,7 @@ class LoMini(Lo):
 
     def cho_cua(self, uid: int) -> int:
         """Mỗi tu sĩ một hang riêng theo uid — mở lại cửa sổ vẫn đúng chỗ cũ."""
-        chat = self.cua.get(uid) or (uid if uid > 0 else -(abs(uid) * 7919 + 1) % (2 ** 31))
+        chat = self.cua.get(uid, uid)
         self.cua[uid] = chat
         return chat
 
@@ -155,37 +149,35 @@ class LoMini(Lo):
 class Dong:
     kho: Kho
     lo: LoMini
-    core: Long
+    core: Long | None = None
 
     def uid_cua(self, request: web.Request) -> tuple[int, int]:
-        """Trả (uid, chat). Khách chưa đăng ký thì mượn một uid âm — deterministic
-        theo địa chỉ IP+trình duyệt để lần sau quay lại vẫn đúng hang đã ngồi."""
+        """Trả (uid, chat) của phiên đã ký; không suy đoán danh tính từ IP."""
         phien = doc_pien(request.cookies.get(TEN_COOK))
         if phien is not None:
             return phien, self.lo.cho_cua(phien)
-        chat = self.lo.cho_cua(self.khach_uid(request))
-        uid = -chat
-        self.lo.cua.setdefault(uid, chat)
-        return uid, chat
-
-    @staticmethod
-    def khach_uid(request: web.Request) -> int:
-        ip = (request.headers.get("X-Forwarded-For", "") or request.remote or "?").split(",")[0].strip()
-        return abs(hash(ip + str(request.headers.get("User-Agent", "")))) % (2 ** 30) + 1
+        raise web.HTTPUnauthorized(text="Hãy mở lại Mini App để đăng nhập.")
 
     @staticmethod
     async def _json(request: web.Request) -> dict:
-        """Khách gửi gì méo mó thì nhận lại con rỗng — cửa động không cãi nhau với người say."""
         try:
-            return await request.json() or {}
-        except Exception:
-            return {}
+            body = await request.json()
+        except (ValueError, TypeError):
+            raise web.HTTPBadRequest(text="JSON không hợp lệ.")
+        if not isinstance(body, dict):
+            raise web.HTTPBadRequest(text="Cần một JSON object.")
+        return body
 
     async def vao(self, request: web.Request) -> web.Response:
         """Cửa ngõ. Trong Telegram: initData → nhập danh chính chủ. Ngoài Telegram:
         khách lang thang, vẫn chơi được (uid âm), vẫn lưu sổ — đó là cách diễn tập."""
         body = await self._json(request)
-        dau = kiem_dau_init(body.get("initData") or request.headers.get("X-Telegram-Init-Data") or "")
+        init = body.get("initData") or request.headers.get("X-Telegram-Init-Data") or ""
+        if not isinstance(init, str) or len(init) > 16384:
+            raise web.HTTPBadRequest(text="initData không hợp lệ.")
+        dau = kiem_dau_init(init)
+        if init and not dau:
+            return web.json_response({"ok": False, "loi": "Phiên Telegram không hợp lệ hoặc đã hết hạn. Hãy mở lại từ bot."}, status=401)
         if dau:
             uid, chat = dau["u"], self.lo.cho_cua(dau["u"])
             self.lo.cua[uid] = chat
@@ -194,12 +186,15 @@ class Dong:
             r.set_cookie(TEN_COOK, lam_pien(uid), max_age=TUOI_PHIEN, httponly=True,
                          samesite="None", secure=True)
             return r
-        gk = self.khach_uid(request)
-        chat = self.lo.cho_cua(gk)
-        uid = -chat
-        self.lo.cua.setdefault(uid, chat)
+        if not CHO_KHACH:
+            return web.json_response({"ok": False, "loi": "Hãy mở Mini App từ bot Telegram."}, status=401)
+        cu = doc_pien(request.cookies.get(TEN_COOK))
+        uid = cu if cu is not None and cu < 0 else -secrets.randbelow(2**52 - 1) - 1
+        self.lo.cho_cua(uid)
         r = web.json_response({"ok": True, "chu": "khách qua ngưỡng", "chinh_chu": False})
-        r.set_cookie(TEN_COOK, lam_pien(uid), max_age=TUOI_PHIEN, httponly=True, samesite="Lax")
+        r.set_cookie(TEN_COOK, lam_pien(uid), max_age=TUOI_PHIEN, httponly=True,
+                     samesite="None" if request.secure or request.headers.get("X-Forwarded-Proto") == "https" else "Lax",
+                     secure=request.secure or request.headers.get("X-Forwarded-Proto") == "https")
         return r
 
     async def gui_lenh(self, request: web.Request) -> web.Response:
@@ -207,10 +202,13 @@ class Dong:
             return web.json_response({"ok": False, "loi": "động đang nhóm lửa, giây nữa thôi"}, status=503)
         body = await self._json(request)
         uid, chat = self.uid_cua(request)
-        text = (body.get("text") or "").strip()
+        text = body.get("text", "")
+        if not isinstance(text, str) or len(text) > 500:
+            raise web.HTTPBadRequest(text="Lệnh phải là chuỗi, tối đa 500 ký tự.")
+        text = text.strip()
         await self.core.xu_ly(TinDen(user_id=uid, chat_id=chat, ten="",
                                      loai="lenh" if text.startswith(("/", "!")) else "text",
-                                     data=text, msg_id=None))
+                                     data=text, msg_id=None, nguon="mini"))
         return web.json_response({"ok": True})
 
     async def bam_nut(self, request: web.Request) -> web.Response:
@@ -218,13 +216,19 @@ class Dong:
             return web.json_response({"ok": False}, status=503)
         body = await self._json(request)
         uid, chat = self.uid_cua(request)
+        nut, msg = body.get("nut"), body.get("msg")
+        if not isinstance(nut, str) or len(nut) > 120 or (msg is not None and type(msg) is not int):
+            raise web.HTTPBadRequest(text="Nút bấm không hợp lệ.")
         await self.core.xu_ly(TinDen(user_id=uid, chat_id=chat, ten="", loai="cb",
-                                     data=str(body.get("nut") or ""), msg_id=body.get("msg")))
+                                     data=nut, msg_id=msg, nguon="mini"))
         return web.json_response({"ok": True})
 
     async def keo_tin(self, request: web.Request) -> web.Response:
         uid, chat = self.uid_cua(request)
-        moc = int(request.query.get("since", "0"))
+        try:
+            moc = max(0, int(request.query.get("since", "0")))
+        except ValueError:
+            raise web.HTTPBadRequest(text="Mốc tin không hợp lệ.")
         tin = [t for t in self.lo._noi(chat) if t["c"] > moc]
         dem = max([t["c"] for t in self.lo._noi(chat)] or [0])
         ts = await self.kho.lay_tu_si(uid)
@@ -233,14 +237,40 @@ class Dong:
                                   "la": ts.ten if ts else None, "bao": bao})
 
 
+    async def trang_thai(self, request: web.Request) -> web.Response:
+        from .trang_thai import lay
+        uid, _ = self.uid_cua(request)
+        if self.core is None:
+            raise web.HTTPServiceUnavailable(text="Đang mở cửa động.")
+        async with self.core.khoa_lenh:
+            return web.json_response(await lay(self.kho, uid), headers={"Cache-Control": "no-store"})
+
+
+@web.middleware
+async def bao_ve(request, handler):
+    if request.method == "POST":
+        # Cookie SameSite=None dùng trong Telegram: chặn form/text/plain CSRF.
+        if request.content_type != "application/json":
+            raise web.HTTPUnsupportedMediaType(text="Chỉ nhận application/json.")
+        origin = request.headers.get("Origin")
+        if origin and urlsplit(origin).netloc != request.host:
+            raise web.HTTPForbidden(text="Nguồn yêu cầu không hợp lệ.")
+    response = await handler(request)
+    if request.path in {"/vao", "/gui", "/nut", "/keo", "/api/state"}:
+        response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
 def tao_app(dong: Dong) -> web.Application:
-    app = web.Application()
-    app.router.add_get("/", lambda r: web.FileResponse(DUONG_WEB / "index.html"))
-    app.router.add_get("/favicon.svg", lambda r: web.FileResponse(DUONG_WEB / "favicon.svg"))
-    if (DUONG_WEB / "mong.css").exists():
-        app.router.add_get("/mong.css", lambda r: web.FileResponse(DUONG_WEB / "mong.css"))
-    if (DUONG_WEB / "dong.js").exists():
-        app.router.add_get("/dong.js", lambda r: web.FileResponse(DUONG_WEB / "dong.js"))
+    app = web.Application(middlewares=[bao_ve], client_max_size=65536)
+    async def static_file(request):
+        filename = "index.html" if request.path == "/" else request.path.lstrip("/")
+        return web.FileResponse(DUONG_WEB / filename)
+    for route in ("/", "/favicon.svg", "/mong.css", "/dong.js"):
+        app.router.add_get(route, static_file)
+    app.router.add_static("/fonts/", str(DUONG_WEB / "fonts"))
+    app.router.add_get("/api/state", dong.trang_thai)
     app.router.add_post("/vao", dong.vao)
     app.router.add_post("/gui", dong.gui_lenh)
     app.router.add_post("/nut", dong.bam_nut)
@@ -268,12 +298,25 @@ async def mo(core: Long | None = None, kho: Kho | None = None,
     dong = nhan(kho)
     dong.core = core or Long(kho, config.TELE_GUILD, dong.lo, rng=rng or random.Random(),
                              thu_duyen=not config.TELEGRAM_TOKEN)
-    return await mo_site(dong, cong), None, dong
+    from .vong import vong_tron_doi
+    app = tao_app(dong)
+    async def cycle(app):
+        task = asyncio.create_task(vong_tron_doi(dong.core))
+        yield
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        await kho.dong()
+    app.cleanup_ctx.append(cycle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    await web.TCPSite(runner, "0.0.0.0", cong or config.WEB_PORT).start()
+    return runner, None, dong
 
 
 async def mo_site(dong: Dong, cong: int | None = None):
     """Mở cổng cho một bộ máy đã có lõi. Trả runner."""
-    runner = web.AppRunner(tao_app(dong))
+    app = tao_app(dong)
+    runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", cong or config.WEB_PORT)
     await site.start()

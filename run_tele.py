@@ -17,8 +17,8 @@ from tuchan import config
 BANNER = r"""
         ╔══════════════════════════════════════════════╗
         ║        TIÊN  ĐỒ  VÔ  TẬN  ·  Telegram        ║
-        ║   một thế giới tu chân, kể bằng chữ — có     ║
-        ║   chiến trường yêu vương (boss) và PK có cược║
+        ║   Mini App tu tiên · động phủ · pháp bảo     ║
+        ║   bảy ải yêu vương · kỳ duyên · tông môn     ║
         ╚══════════════════════════════════════════════╝
 """
 
@@ -43,7 +43,6 @@ async def main(mini: bool) -> None:
         from tuchan.tele import mini as cua_dong
         if not config.TELEGRAM_TOKEN:
             runner, _site, dong = await cua_dong.mo()
-            dong = None
         else:
             # một lõi lệnh, hai cái miệng: Telegram bot và cửa động cùng nuốt chung sổ sách
             kho = Kho(); await kho.mo()
@@ -76,10 +75,15 @@ async def main(mini: bool) -> None:
         sys.exit(1)
 
     from tuchan.tele.bot import chay
-    if runner is not None:
-        await chay(kho=kho, lo_them=dong.lo, gan_core=lambda core: setattr(dong, "core", core))
-    else:
-        await chay()
+    try:
+        if runner is not None:
+            await chay(kho=kho, lo_them=dong.lo, gan_core=lambda core: setattr(dong, "core", core))
+        else:
+            await chay()
+    finally:
+        if runner is not None:
+            await runner.cleanup()
+            await kho.dong()
 
 
 if __name__ == "__main__":

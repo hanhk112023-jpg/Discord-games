@@ -1,7 +1,7 @@
 """Tiên Đồ Vô Tận — cốt lõi thế giới tu chân.
 
 Gói này chứa toàn bộ "thiên địa" của trò chơi: cảnh giới, vật phẩm, môn phái,
-địa danh, và các cơ chế vận hành. Tầng Discord chỉ là cái miệng để kể lại,
+địa danh, và các cơ chế vận hành. Telegram Mini App là giao diện chính,
 mọi luật lệ đều nằm ở đây và có thể chạy độc lập.
 """
 

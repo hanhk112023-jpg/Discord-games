@@ -22,7 +22,7 @@ from .hien_thi import dinh_dang
 log = logging.getLogger("tien.vong")
 
 NHIP = 5 * 60                      # giây giữa các vòng
-XAC_SUAT_TROI = 0.07              # mỗi nhịp, ~14%/nửa canh giờ như bên Discord
+XAC_SUAT_TROI = 0.07              # mỗi nhịp, ~14%/nửa canh giờ của thế giới
 _tro_last = [0]
 
 
@@ -32,7 +32,8 @@ async def vong_tron_doi(core, bot=None) -> None:
     await asyncio.sleep(20)  # để bot kịp đứng vững đã
     while True:
         try:
-            await mot_nhip(core)
+            async with core.khoa_lenh:
+                await mot_nhip(core)
         except Exception:  # pragma: no cover
             log.exception("Vòng tuần tra vấp đá")
         await asyncio.sleep(nhip)

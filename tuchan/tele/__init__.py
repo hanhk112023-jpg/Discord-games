@@ -5,6 +5,6 @@
   bot.py      — vỏ aiogram: lệnh /slash, ảnh/video, callback nút
   vong.py     — vòng tuần tra: boss thức tỉnh/lui về, thiên biến, lời thách quá hạn
 
-Cả bốn tệp này cộng với run_tele.py là toàn bộ những gì Telegram cần.
-Luật chơi nằm nguyên trong tuchan/he/ — dùng chung với bot Discord, không bản sao.
+  mini.py / trang_thai.py / web/ — Telegram Mini App, API và giao diện đồ họa.
+Luật chơi nằm nguyên trong tuchan/he/ — dùng chung giữa Mini App và bot Telegram, không bản sao.
 """
