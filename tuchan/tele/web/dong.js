@@ -287,9 +287,12 @@
       $("#mp-text").textContent = `${number(nv.mp)} / ${number(nv.mp_max)}`;
       $("#mp-bar").style.width = `${mpPercent}%`;
 
-      $("#cultivation-value").textContent = `${number(nv.tu_vi)} / ${number(nv.tu_vi_can)}`;
-      $("#tuvi-percent").textContent = `${tuviPercent.toFixed(1)}%`;
-      $("#cultivation-progress").style.width = `${tuviPercent}%`;
+      const valEl = $("#cultivation-value");
+      if (valEl) valEl.textContent = `${number(nv.tu_vi)} / ${number(nv.tu_vi_can)}`;
+      const pctEl = $("#tuvi-percent");
+      if (pctEl) pctEl.textContent = `${tuviPercent.toFixed(1)}%`;
+      const progEl = $("#cultivation-progress");
+      if (progEl) progEl.style.width = `${tuviPercent}%`;
 
       $("#tuvi-rate").textContent = number(nv.tu_vi_sec || 1);
 
