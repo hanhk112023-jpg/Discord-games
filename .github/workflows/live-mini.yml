@@ -1,0 +1,155 @@
+name: Sống · cửa động 24/7
+
+# Một vòng lặp bất tận giữa hai workflow cùng tệp (A chạy → xong → B được
+# workflow_run gọi → xong → A lại chạy…). Mỗi lượt được sống gần 6 tiếng;
+# job chết vì timeout thì đúng lúc đó đã có lượt kế đứng lên, nên cổng
+# gần như không bao giờ khép. cron mỗi 14 phút là dây an toàn thứ hai.
+
+on:
+  workflow_dispatch:
+    inputs:
+      chedo:
+        description: "thu = đốt 4 phút rồi tắt (kiểm máy); song = trực canh lâu hết cỡ"
+        type: choice
+        default: song
+        options: [song, thu]
+  schedule:
+    - cron: '*/14 * * * *'
+  workflow_run:
+    workflows: ["Sống · cửa động 24/7"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cua-dong-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  canh:
+    name: Trông cửa động
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    env:
+      CHE_DO: ${{ github.event.inputs.chedo || 'song' }}
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+      TELE_GUILD: ${{ vars.TELE_GUILD || '1' }}
+      TELE_ADMIN_IDS: ${{ vars.TELE_ADMIN_IDS }}
+      WEB_PORT: "8080"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Dụng cụ
+        run: pip install -q -r requirements.txt
+
+      - name: Kéo sổ về (nhánh du-tru)
+        run: python tools/actions_giu.py lay
+
+      - name: Khoét cửa động (cloudflared)
+        run: |
+          set -euo pipefail
+          curl -sSL -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          nohup /tmp/cloudflared tunnel --url http://localhost:8080 --no-autoupdate > /tmp/cf.log 2>&1 &
+          echo $! > /tmp/cf.pid
+          for i in $(seq 1 40); do
+            sleep 2
+            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1 || true)
+            if [ -n "${URL:-}" ]; then echo "TELE_MINIAPP_URL=$URL" >> "$GITHUB_ENV"; echo "🏮 $URL"; break; fi
+          done
+          test -n "${TELE_MINIAPP_URL:-}" || { echo "::error::đường hầm không mở được cửa"; exit 1; }
+
+      - name: Dựng bảng cổng (GitHub Pages)
+        run: |
+          set -uo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          if ! gh api "repos/$REPO/branches/gh-pages" >/dev/null 2>&1; then
+            SHA=$(gh api "repos/$REPO/git/refs/heads/$(gh api repos/$REPO --jq .default_branch)" --jq .object.sha)
+            gh api -X POST "repos/$REPO/git/refs" -f ref=refs/heads/gh-pages -f sha="$SHA" >/dev/null 2>&1 || true
+          fi
+          TAIL=$'<!doctype html><meta charset=utf-8><title>Tiên Đồ Vô Tận — cửa động</title>\n'
+          TAIL+=$'<style>body{background:#0e1621;color:#e9eef4;font:15px/1.6 system-ui,sans-serif;display:grid;place-items:center;height:100vh;margin:0;text-align:center}a{color:#e3b562}</style>\n'
+          TAIL+='<body><div id=x>Đang lần lối vào động…</div><script>\n'
+          TAIL+='var duong = location.pathname.replace(/[^\/]*$/,"");\n'
+          TAIL+='fetch(duong+"mini.json?t="+Date.now(),{cache:"no-store"})\n'
+          TAIL+='.then(function(r){return r.json()})\n'
+          TAIL+='.then(function(d){if(d&&d.url){location.replace(d.url)}else{document.getElementById("x").innerHTML="Cửa động đang khép — lượt trực sau sẽ mở lại."}})\n'
+          TAIL+='.catch(function(){document.getElementById("x").innerHTML="Chưa có cửa — có lẽ Pages chưa bật, hoặc phiên trực đang nhóm lửa.";});\n'
+          TAIL+='</script></body>'
+          CONTENT=$(printf '%s' "$TAIL" | base64 -w0)
+          gh api -X PUT "repos/$REPO/contents/index.html" --input - <<EOF || echo "⚠ chưa dựng được bảng cổng (Pages cần bật 1-click trong Settings) — bỏ qua"
+          {"message":"cửa động đổi nhà","branch":"gh-pages","content":"$CONTENT"}
+          EOF
+          printf '{"url":"%s","lan_sau":"%s"}' "$TELE_MINIAPP_URL" "$(date -Is)" > /tmp/mini.json
+          M=$(base64 -w0 < /tmp/mini.json)
+          gh api -X PUT "repos/$REPO/contents/mini.json" --input - <<EOF || true
+          {"message":"ghé cửa $TELE_MINIAPP_URL","branch":"gh-pages","content":"$M"}
+          EOF
+
+      - name: Nhóm lửa
+        run: |
+          set -uo pipefail
+          nohup python run_tele.py --mini > /tmp/app.log 2>&1 &
+          echo $! > /tmp/app.pid
+          for i in $(seq 1 30); do
+            sleep 2
+            if curl -sf -o /dev/null http://localhost:8080/; then echo "🔥 động đã ấm"; break; fi
+          done
+          curl -sf -o /dev/null http://localhost:8080/ || { echo "::error::động không ấm"; tail -40 /tmp/app.log; exit 1; }
+          {
+            echo "## 🏮 Cửa động: $TELE_MINIAPP_URL"
+            echo
+            echo "Mở từ Telegram: thêm vào bot → \`/menu\` → *Vào động* (đặt secret \`TELEGRAM_TOKEN\` để bot thật đứng lớp)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Tự điểm chỉ (smoke khi che-do=thu)
+        if: env.CHE_DO == 'thu'
+        run: |
+          set -euo pipefail
+          J='Content-Type: application/json'; CK=/tmp/ck
+          rm -f $CK
+          curl -sf -c $CK -X POST localhost:8080/vao -H "$J" -d '{}' > /dev/null
+          curl -sf -b $CK -X POST localhost:8080/gui -H "$J" -d '{"text":"/dangky kẻ thử lửa"}' > /dev/null
+          curl -sf -b $CK -X POST localhost:8080/nut  -H "$J" -d '{"nut":"xt:tan_tu_lang_bac"}' > /dev/null
+          curl -sf -b $CK -X POST localhost:8080/nut  -H "$J" -d '{"nut":"gt:nam"}' > /dev/null
+          curl -sf -b $CK -X POST localhost:8080/gui -H "$J" -d '{"text":"Kẻ Thử Lửa"}' > /dev/null
+          curl -sf -b $CK "localhost:8080/keo?since=0" | python -c 'import json,sys; d=json.load(sys.stdin); assert d["la"]=="Kẻ Thử Lửa", d; print("✔ khách nhập đạo qua API công cộng")'
+          curl -sf -b $CK -X POST localhost:8080/gui -H "$J" -d '{"text":"/luyentap"}' > /dev/null
+          echo "✔ cửa động CI sống ổn — tắt bếp"
+          kill "$(cat /tmp/app.pid)" 2>/dev/null || true
+          kill "$(cat /tmp/cf.pid)" 2>/dev/null || true
+          sleep 1
+
+      - name: Canh chừng
+        if: env.CHE_DO != 'thu'
+        run: |
+          START=$(date +%s); HAN=19500   # 5h25 — chừa đường rút trước khi timeout 345' chụp
+          while kill -0 "$(cat /tmp/app.pid)" 2>/dev/null; do
+            sleep 300
+            python tools/actions_giu.py luu || true
+            if [ $(( $(date +%s) - START )) -ge $HAN ]; then
+              echo "🌅 hết phiên trực — trả cửa cho lượt sau"; break
+            fi
+          done
+
+      - name: Chốt sổ lần cuối
+        if: always()
+        run: python tools/actions_giu.py luu || true
+
+      - name: Trả cửa động cho canh sau
+        if: always()
+        run: |
+          kill "$(cat /tmp/app.pid)" 2>/dev/null || true
+          kill "$(cat /tmp/cf.pid)" 2>/dev/null || true
+          # thắt lưng thêm dây: nếu repo có secret PAT (Actions: write), đẩy một nhịp tức thì;
+          # GITHUB_TOKEN mặc định bị GitHub chặn self-dispatch — không sao, workflow_run và cron lo phần còn lại
+          if [ -n "${{ secrets.ACTIONS_PAT }}" ]; then
+            gh api -X POST "repos/$GITHUB_REPOSITORY/actions/workflows/live-mini.yml/dispatches" \
+              -f ref="$GITHUB_REF" -f event_type=ruc-can \
+              -H "Authorization: Bearer ${{ secrets.ACTIONS_PAT }}" || true
+          fi
