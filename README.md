@@ -208,6 +208,58 @@ Kết trận có một câu bình, khác nhau tuỳ thắng đậm, thắng sát
 
 ---
 
+
+---
+
+## ⛩ Cửa động — Telegram Mini App
+
+Mọi thứ bot làm được trong chat, Mini App làm được trong một cái động mở ngay trong
+Telegram: bàn đá, đèn dầu, nút bấm, ảnh thuỷ mặc, thanh ảnh — cùng một cuốn sổ sinh tử,
+không có bản sao luật chơi.
+
+```bash
+python run_tele.py --mini     # cửa động cổng 8080 + bot (nếu có TELEGRAM_TOKEN)
+python3 -m tuchan.tele.mini   # riêng cửa động — khách lang thang không cần token
+```
+
+* **Trong Telegram**: người dùng bấm *Vào động* (nút menu bot hoặc nút trong `/menu`).
+  `initData` do Telegram ký được kiểm bằng HMAC đúng chuẩn — vào cửa là nhập danh chính chủ,
+  không cần mật khẩu, không có ai đội lốt ai.
+* **Ngoài Telegram** (browser thường): vẫn chơi được như một chiếu diễn tập — uid âm,
+  sổ riêng, không đụng tới người thật.
+* `TELE_MINIAPP_URL` trong `.env` = đường https công khai của cửa động; khi có, bot tự
+  dựng nút menu toàn cục và gửi lời mời tới từng người trong danh bạ.
+
+## 🕰 Trực 24/7 bằng GitHub Actions (không máy chủ, không tiền)
+
+`tools/workflows/live-mini.yml` là ca trực: mỗi phiên sống ~5 tiếng rưỡi, cuối phiên chốt sổ
+lên nhánh `du-tru`, rồi `workflow_run` nối tiếp phiên sau — cổng gần như không khép.
+Runner là nhà trọ nên phiên bản này **không có session trong RAM**: cookie tự ký HMAC,
+mọi trạng thái nằm trong sqlite.
+
+```bash
+bash tools/bat-workflows.sh          # nạp workflow (token máy không được ghi .github/workflows)
+```
+
+Cần chuẩn bị, theo thứ tự quan trọng:
+
+1. **Secret** `TELEGRAM_TOKEN` — thiếu thì cửa động vẫn mở cho khách, nhưng bot thật không đứng lớp.
+2. **Cài `aiohttp`** — đã có trong `requirements.txt`.
+3. *(tuỳ chọn)* `ACTIONS_PAT` (fine-grained, *Actions: write*) — nếu có, mỗi phiên tự đẩy nhịp
+   `repository_dispatch` để phiên sau thức ngay trong giây; không có thì cron 14 phút một lần
+   vẫn bắt nhịp (thụt lò tối đa ~15 phút mỗi phiên).
+4. *(tuỳ chọn)* bật **Settings → Pages → Deploy from a branch → `gh-pages` / root** — khi repo
+   *public*, link vĩnh viễn `https://<user>.github.io/<repo>/` sẽ tự lần ra cửa động mới nhất
+   (mỗi phiên Actions ghi `mini.json`). Repo riêng tư thì bỏ qua: nút *Vào động* trong bot
+   vẫn đưa thẳng vào cửa — đó mới là cửa chính.
+
+Đường dẫn trycloudflare **đổi theo từng phiên** — đó là lý do tồn tại của hai thứ ở bước 3–4:
+người trong bot bấm nút luôn đúng cửa, người ngoài cần Pages làm bảng chỉ đường.
+
+Thử máy CI: Actions → *Sống · cửa động 24/7* → Run workflow → chọn `thu` — bốn phút,
+tự điểm chỉ từ `/dangky` tới `/nhanvat` rồi tắt bếp.
+
+---
 ## Tranh, tiếng và thanh ảnh
 
 **Tranh vật phẩm.** Ngoài tranh cảnh giới / địa danh, các món pháp bảo và đan dược đáng kể đều có bức vẽ riêng
@@ -271,13 +323,18 @@ tuchan/
   tele/                    tầng Telegram, mỏng như thế
     long.py                lõi lệnh + điều hướng nút — không import aiogram, test được từ terminal
     hien_thi.py            KetQua → trang HTML Telegram (markdown → tg HTML, cắt trang, caption tranh)
-    bot.py                 vỏ aiogram: slash command, gửi ảnh/video, callback nút
+    bot.py                 vỏ aiogram: slash command, gửi ảnh/video, callback nút, nút web_app
+    mini.py                cửa động Mini App: verify initData, phiên HMAC, cùng lõi Long
+    web/                   màng phủ Telegram cho cửa động (html/css/js, theo theme máy khách)
     vong.py                vòng tuần tra: boss thức tỉnh/lui về, thiên biến, lời thách quá hạn
 tools/
   mophong.py               diễn tập Discord trong terminal
   web_dienrap.py           diễn tập Discord trong trình duyệt
   tele_thutap.py           diễn tập Telegram trong terminal (+ --tu-dong: tự diễn, tự kiểm tra sổ sách)
   tele_dienrap.py          diễn tập Telegram trong trình duyệt — bong bóng, nút bấm, tranh, thanh ảnh
+  actions_giu.py           chốt sổ / kéo sổ giữa những phiên trực Actions
+  workflows/live-mini.yml  ca trực 24/7: cloudflared + Pages + du-tru + workflow_run
+  bat-workflows.sh         nạp ca trực lên .github/workflows (một lần)
   lam_thanh_anh.py         dựng thanh ảnh
 ```
 

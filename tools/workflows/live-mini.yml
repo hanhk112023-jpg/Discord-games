@@ -75,8 +75,11 @@ jobs:
           TAIL=$'<!doctype html><meta charset=utf-8><title>Tiên Đồ Vô Tận — cửa động</title>\n'
           TAIL+=$'<style>body{background:#0e1621;color:#e9eef4;font:15px/1.6 system-ui,sans-serif;display:grid;place-items:center;height:100vh;margin:0;text-align:center}a{color:#e3b562}</style>\n'
           TAIL+='<body><div id=x>Đang lần lối vào động…</div><script>\n'
-          TAIL+='fetch(location.pathname.replace(/\\/$/,"/mini.json")+"?t="+Date.now(),{cache:"no-store"})\n'
-          TAIL+='.then(r=>r.json()).then(d=>{if(d&&d.url){location.replace(d.url)}}).catch(()=>{document.getElementById("x").innerHTML="Cửa động đang khép — lượt trực sau sẽ mở lại.";});\n'
+          TAIL+='var duong = location.pathname.replace(/[^\/]*$/,"");\n'
+          TAIL+='fetch(duong+"mini.json?t="+Date.now(),{cache:"no-store"})\n'
+          TAIL+='.then(function(r){return r.json()})\n'
+          TAIL+='.then(function(d){if(d&&d.url){location.replace(d.url)}else{document.getElementById("x").innerHTML="Cửa động đang khép — lượt trực sau sẽ mở lại."}})\n'
+          TAIL+='.catch(function(){document.getElementById("x").innerHTML="Chưa có cửa — có lẽ Pages chưa bật, hoặc phiên trực đang nhóm lửa.";});\n'
           TAIL+='</script></body>'
           CONTENT=$(printf '%s' "$TAIL" | base64 -w0)
           gh api -X PUT "repos/$REPO/contents/index.html" --input - <<EOF || echo "⚠ chưa dựng được bảng cổng (Pages cần bật 1-click trong Settings) — bỏ qua"

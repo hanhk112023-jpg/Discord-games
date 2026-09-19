@@ -40,8 +40,33 @@ def _sha() -> str:
                           text=True, check=True).stdout.strip()
 
 
-def _api(*ls: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["gh", "api", *ls], capture_output=True, text=True)
+def _api(*ls: str, input_: str | None = None) -> subprocess.CompletedProcess:
+    return subprocess.run(["gh", "api", *ls], input=input_, capture_output=True, text=True)
+
+
+def _nhanh_ton_tai(repo: str, nhanh: str) -> bool:
+    return _api(f"repos/{repo}/git/ref/heads/{nhanh}").returncode == 0
+
+
+def _tao_nhanh(repo: str, nhanh: str) -> bool:
+    """Nhánh trực chưa từng có — dựng từ đầu nhánh mặc định."""
+    m = _api(f"repos/{repo}")
+    try:
+        mac_dinh = json.loads(m.stdout)["default_branch"]
+    except Exception:
+        return False
+    r = _api(f"repos/{repo}/git/ref/heads/{mac_dinh}")
+    try:
+        sha = json.loads(r.stdout)["object"]["sha"]
+    except Exception:
+        return False
+    return _api("-X", "POST", f"repos/{repo}/git/refs",
+                "-f", f"ref=refs/heads/{nhanh}", "-f", f"sha={sha}").returncode == 0
+
+
+def _sha_tep(repo: str, duong: str, nhanh: str) -> str | None:
+    r = _api(f"repos/{repo}/contents/{duong}?ref={nhanh}", "--jq", ".sha")
+    return r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else None
 
 
 def luu() -> int:
@@ -58,18 +83,20 @@ def luu() -> int:
     du_lieu = base64.b64encode(tam.read_bytes()).decode()
     tam.unlink(missing_ok=True)
     repo = _repo()
+    if not _nhanh_ton_tai(repo, NHANH):
+        if not _tao_nhanh(repo, NHANH):
+            print("⚠ không tạo được nhánh du-tru (token thiếu quyền?)", file=sys.stderr)
+            return 1
+    sha_cu = _sha_tep(repo, FILE_TRONG_NHANH, NHANH)
 
-    def ghi(co_sha: bool) -> subprocess.CompletedProcess:
+    def ghi(sha: str | None) -> subprocess.CompletedProcess:
         than = {"message": "chốt sổ giữa canh", "branch": NHANH, "content": du_lieu}
-        if co_sha:
-            than["sha"] = _sha()
-        return subprocess.run(["gh", "api", "-X", "PUT",
-                               f"repos/{repo}/contents/{FILE_TRONG_NHANH}", "--input", "-"],
-                              input=json.dumps(than), capture_output=True, text=True)
+        if sha:
+            than["sha"] = sha
+        return _api("-X", "PUT", f"repos/{repo}/contents/{FILE_TRONG_NHANH}",
+                    "--input", "-", input_=json.dumps(than))
 
-    r = ghi(True)
-    if r.returncode != 0:
-        r = ghi(False)  # nhánh hoặc tệp chưa tồn tại — tạo mới
+    r = ghi(sha_cu)
     if r.returncode != 0:
         print("⚠ không chốt được sổ:", r.stderr[:300], file=sys.stderr)
         return 1
