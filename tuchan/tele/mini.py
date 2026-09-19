@@ -23,6 +23,7 @@ from urllib.parse import parse_qsl, urlsplit
 from aiohttp import web
 
 from .. import config
+from ..data import congthuc, kynang, vatpham
 from ..db import Kho
 from .hien_thi import Trang
 from .long import Lo, Long, TinDen
@@ -459,6 +460,209 @@ class Dong:
                 "thong_bao": "Vận khí điều tức hoàn tất! Khí huyết và chân khí đã hồi phục 100%.",
             })
 
+    async def api_hoc_ky_nang(self, request: web.Request) -> web.Response:
+        uid, _ = self.uid_cua(request)
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        body = await request.json()
+        ma = str(body.get("ma", "")).strip()
+        kn = kynang.lay_ky_nang(ma)
+        if not kn:
+            return web.json_response({"ok": False, "loi": "Kỹ năng không tồn tại."}, status=400)
+
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            if ts.canh_gioi < kn.canh_gioi:
+                return web.json_response({"ok": False, "loi": f"Cần đạt cảnh giới {kn.canh_gioi_ten} mới có thể lĩnh ngộ."}, status=400)
+            da_hoc = ts.lay_ky_nang()
+            if ma in da_hoc:
+                return web.json_response({"ok": False, "loi": "Đã lĩnh ngộ kỹ năng này rồi."}, status=400)
+            if ts.tu_vi < kn.gia_tu_vi or ts.linh_thach < kn.gia_linh_thach:
+                return web.json_response({"ok": False, "loi": f"Không đủ tài nguyên! Cần {kn.gia_tu_vi} Tu vi và {kn.gia_linh_thach} Linh thạch."}, status=400)
+
+            ts.tu_vi -= kn.gia_tu_vi
+            ts.linh_thach -= kn.gia_linh_thach
+            ts.dat_ky_nang(ma, 1)
+
+            tb = ts.lay_ky_nang_trang_bi()
+            if len(tb) < 4 and ma not in tb:
+                tb.append(ma)
+                ts.dat_ky_nang_trang_bi(tb)
+
+            await self.kho.luu(ts)
+            return web.json_response({
+                "ok": True,
+                "thong_bao": f"Lĩnh ngộ thành công bí thuật 【{kn.ten}】! Lực chiến tăng vọt!",
+            })
+
+    async def api_nang_cap_ky_nang(self, request: web.Request) -> web.Response:
+        uid, _ = self.uid_cua(request)
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        body = await request.json()
+        ma = str(body.get("ma", "")).strip()
+        kn = kynang.lay_ky_nang(ma)
+        if not kn:
+            return web.json_response({"ok": False, "loi": "Kỹ năng không tồn tại."}, status=400)
+
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            da_hoc = ts.lay_ky_nang()
+            if ma not in da_hoc:
+                return web.json_response({"ok": False, "loi": "Chưa học kỹ năng này."}, status=400)
+
+            cap = da_hoc[ma]
+            gia_tv = int(kn.gia_tu_vi * (1.5 ** cap))
+            gia_lt = int(kn.gia_linh_thach * (1.5 ** cap))
+
+            if ts.tu_vi < gia_tv or ts.linh_thach < gia_lt:
+                return web.json_response({"ok": False, "loi": f"Không đủ tài nguyên! Cần {gia_tv} Tu vi và {gia_lt} Linh thạch."}, status=400)
+
+            ts.tu_vi -= gia_tv
+            ts.linh_thach -= gia_lt
+            ts.dat_ky_nang(ma, cap + 1)
+            await self.kho.luu(ts)
+            return web.json_response({
+                "ok": True,
+                "cap_moi": cap + 1,
+                "thong_bao": f"Kỹ năng 【{kn.ten}】 đã nâng lên Cấp {cap + 1}!",
+            })
+
+    async def api_trang_bi_ky_nang(self, request: web.Request) -> web.Response:
+        uid, _ = self.uid_cua(request)
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        body = await request.json()
+        ma = str(body.get("ma", "")).strip()
+        slot = int(body.get("slot", 0))
+        kn = kynang.lay_ky_nang(ma)
+        if not kn:
+            return web.json_response({"ok": False, "loi": "Kỹ năng không tồn tại."}, status=400)
+
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            da_hoc = ts.lay_ky_nang()
+            if ma not in da_hoc:
+                return web.json_response({"ok": False, "loi": "Chưa học kỹ năng này."}, status=400)
+
+            tb = ts.lay_ky_nang_trang_bi()
+            if ma in tb:
+                tb.remove(ma)
+            if slot < len(tb):
+                tb[slot] = ma
+            else:
+                tb.append(ma)
+            ts.dat_ky_nang_trang_bi(tb)
+            await self.kho.luu(ts)
+            return web.json_response({
+                "ok": True,
+                "thong_bao": f"Đã trang bị 【{kn.ten}】 vào ô xuất chiêu!",
+            })
+
+    async def api_thao_ky_nang(self, request: web.Request) -> web.Response:
+        uid, _ = self.uid_cua(request)
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        body = await request.json()
+        slot = int(body.get("slot", -1))
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            tb = ts.lay_ky_nang_trang_bi()
+            if 0 <= slot < len(tb):
+                tb.pop(slot)
+                ts.dat_ky_nang_trang_bi(tb)
+                await self.kho.luu(ts)
+                return web.json_response({"ok": True, "thong_bao": "Đã tháo kỹ năng khỏi ô xuất chiêu."})
+            return web.json_response({"ok": False, "loi": "Vị trí không hợp lệ."}, status=400)
+
+    async def api_luyen_dan(self, request: web.Request) -> web.Response:
+        uid, _ = self.uid_cua(request)
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        body = await request.json()
+        ma = str(body.get("ma", "")).strip()
+        ct = congthuc.DAN_PHUONG.get(ma)
+        if not ct:
+            return web.json_response({"ok": False, "loi": "Công thức đan dược không tồn tại."}, status=400)
+
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            if ts.canh_gioi < ct.canh_gioi_toi_thieu:
+                return web.json_response({"ok": False, "loi": "Cảnh giới chưa đủ để mở lò luyện phương này."}, status=400)
+
+            tui = await self.kho.tui(uid)
+            for mat, sl in ct.nguyen_lieu.items():
+                if tui.get(mat, 0) < sl:
+                    vp_nl = vatpham.lay(mat)
+                    ten_nl = vp_nl.ten if vp_nl else mat
+                    return web.json_response({"ok": False, "loi": f"Thiếu dược liệu: {ten_nl} (cần {sl}, có {tui.get(mat, 0)})."}, status=400)
+
+            for mat, sl in ct.nguyen_lieu.items():
+                await self.kho.bot_vat(uid, mat, sl)
+
+            tp = vatpham.lay(ct.thanh_pham)
+            ten_tp = tp.ten if tp else ct.thanh_pham
+            await self.kho.them_vat(uid, ct.thanh_pham, 1)
+
+            exp_chem = int(50 * (1.5 ** ct.canh_gioi_toi_thieu))
+            ts.tu_vi += exp_chem
+            await self.kho.luu(ts)
+
+            return web.json_response({
+                "ok": True,
+                "thong_bao": f"🔥 Đan hỏa viên mãn! Luyện thành công 1 viên 【{ten_tp}】! (+{exp_chem} Tu vi)",
+            })
+
+    async def api_luyen_khi(self, request: web.Request) -> web.Response:
+        uid, _ = self.uid_cua(request)
+        if self.core is None:
+            return web.json_response({"ok": False, "loi": "Động đang khởi tạo."}, status=503)
+        body = await request.json()
+        ma = str(body.get("ma", "")).strip()
+        ct = congthuc.KHI_PHUONG.get(ma)
+        if not ct:
+            return web.json_response({"ok": False, "loi": "Khí phương không tồn tại."}, status=400)
+
+        async with self.core.khoa_lenh:
+            ts = await self.kho.lay_tu_si(uid)
+            if not ts:
+                return web.json_response({"ok": False, "loi": "Chưa nhập đạo."}, status=400)
+            if ts.canh_gioi < ct.canh_gioi_toi_thieu:
+                return web.json_response({"ok": False, "loi": "Cảnh giới chưa đủ để rèn bảo vật này."}, status=400)
+
+            tui = await self.kho.tui(uid)
+            for mat, sl in ct.nguyen_lieu.items():
+                if tui.get(mat, 0) < sl:
+                    vp_nl = vatpham.lay(mat)
+                    ten_nl = vp_nl.ten if vp_nl else mat
+                    return web.json_response({"ok": False, "loi": f"Thiếu khoáng thạch: {ten_nl} (cần {sl}, có {tui.get(mat, 0)})."}, status=400)
+
+            for mat, sl in ct.nguyen_lieu.items():
+                await self.kho.bot_vat(uid, mat, sl)
+
+            tp = vatpham.lay(ct.thanh_pham)
+            ten_tp = tp.ten if tp else ct.thanh_pham
+            await self.kho.them_vat(uid, ct.thanh_pham, 1)
+
+            exp_chem = int(80 * (1.5 ** ct.canh_gioi_toi_thieu))
+            ts.tu_vi += exp_chem
+            await self.kho.luu(ts)
+
+            return web.json_response({
+                "ok": True,
+                "thong_bao": f"⚔️ Tôi hỏa thành thần! Rèn đúc thành công 【{ten_tp}】! (+{exp_chem} Tu vi)",
+            })
+
 
 @web.middleware
 async def bao_ve(request, handler):
@@ -494,6 +698,12 @@ def tao_app(dong: Dong) -> web.Application:
     app.router.add_post("/api/action/cuong-hoa", dong.api_cuong_hoa)
     app.router.add_post("/api/action/dung-dan", dong.api_dung_dan)
     app.router.add_post("/api/action/duong-thuong", dong.api_duong_thuong)
+    app.router.add_post("/api/action/hoc-ky-nang", dong.api_hoc_ky_nang)
+    app.router.add_post("/api/action/nang-cap-ky-nang", dong.api_nang_cap_ky_nang)
+    app.router.add_post("/api/action/trang-bi-ky-nang", dong.api_trang_bi_ky_nang)
+    app.router.add_post("/api/action/thao-ky-nang", dong.api_thao_ky_nang)
+    app.router.add_post("/api/action/luyen-dan", dong.api_luyen_dan)
+    app.router.add_post("/api/action/luyen-khi", dong.api_luyen_khi)
     app.router.add_post("/vao", dong.vao)
     app.router.add_post("/gui", dong.gui_lenh)
     app.router.add_post("/nut", dong.bam_nut)

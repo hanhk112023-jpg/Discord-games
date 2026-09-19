@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#0c1917" />
     <meta
       name="description"
-      content="Tiên Đồ Vô Tận — Tu tiên chiến đấu, tọa thiền ngưng khí, săn quái dã ngoại, vượt Trấn Yêu Tháp."
+      content="Tiên Đồ Vô Tận — Tu tiên chiến đấu, kỹ năng công pháp, săn quái dã ngoại, vượt Trấn Yêu Tháp."
     />
     <title>Tiên Đồ Vô Tận · Tu Tiên Chiến Đấu</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -82,10 +82,13 @@
           ><svg><use href="#i-lotus" /></svg></span
         ><span>TIÊN ĐỒ<small>C H I Ế N &nbsp; Đ Ấ U</small></span></a
       >
-      <div class="side-divider"><span>LỐI CHƠI CHÍNH</span></div>
+      <div class="side-divider"><span>HỆ THỐNG CHÍNH</span></div>
       <nav class="main-nav" aria-label="Điều hướng chính">
         <button class="nav-btn active" data-page="home">
           <svg><use href="#i-lotus" /></svg><span>Tu Luyện</span><i></i>
+        </button>
+        <button class="nav-btn" data-page="skills">
+          <svg><use href="#i-star" /></svg><span>Kỹ Năng</span><small>Bí Thuật</small>
         </button>
         <button class="nav-btn" data-page="combat">
           <svg><use href="#i-sword" /></svg><span>Chiến Đấu</span><small>Săn Quái</small>
@@ -94,27 +97,17 @@
           <svg><use href="#i-bag" /></svg><span>Túi & Trang Bị</span>
         </button>
         <button class="nav-btn" data-page="craft">
-          <svg><use href="#i-fire" /></svg><span>Đan Phòng</span>
+          <svg><use href="#i-fire" /></svg><span>Đan Phòng</span><small>Luyện Khí</small>
         </button>
         <button class="nav-btn" data-page="codex">
           <svg><use href="#i-scroll" /></svg><span>Vạn Vật Phổ</span>
-        </button>
-      </nav>
-      <div class="side-divider"><span>KÊNH LỆNH & TRỢ GIÚP</span></div>
-      <nav class="secondary-nav">
-        <button data-command="/nv">
-          <svg><use href="#i-star" /></svg>Chỉ số chi tiết</button
-        ><button data-command="/nhatky">
-          <svg><use href="#i-leaf" /></svg>Nhật ký hành động</button
-        ><button data-command="/chidan">
-          <svg><use href="#i-scroll" /></svg>Hướng dẫn tu tiên
         </button>
       </nav>
       <div class="side-bottom">
         <span class="seal-small"
           ><svg><use href="#i-sword" /></svg
         ></span>
-        <p>Chiến đấu trảm yêu<small>Vấn đỉnh trường sinh</small></p>
+        <p>Tu luyện ngưng khí<small>Chiến đấu trảm yêu</small></p>
         <div class="telegram-tag"><span>↗</span> TELEGRAM MINI APP</div>
       </div>
     </aside>
@@ -132,14 +125,7 @@
           <span class="wallet" title="Linh thạch sở hữu">
             <svg><use href="#i-gem" /></svg><b id="wallet-value">—</b><small>Linh thạch</small>
           </span>
-          <button
-            class="icon-btn"
-            id="journal-open"
-            aria-label="Mở nhật ký hành động"
-            title="Lệnh & Nhật ký"
-          >
-            <svg><use href="#i-bell" /></svg></button
-          ><button class="avatar" id="profile-open" aria-label="Nhân vật" title="Bảng chỉ số">
+          <button class="avatar" id="profile-open" aria-label="Nhân vật" title="Hồ sơ nhân vật">
             <svg><use href="#i-lotus" /></svg>
           </button>
         </div>
@@ -147,7 +133,7 @@
       <main id="main">
         <div class="page-intro">
           <div>
-            <div class="eyebrow">TU LUYỆN CHÂN KHÍ · CHIẾN ĐẤU TRẢM YÊU</div>
+            <div class="eyebrow">TU TIÊN CHIẾN ĐẤU · ĐỈNH CAO THẦN THÔNG</div>
             <h1 id="page-title">Tu Luyện</h1>
             <p id="page-subtitle">
               Ngưng tụ thiên địa linh khí, rèn luyện thân thể, đột phá cảnh giới.
@@ -156,7 +142,7 @@
           <span class="world-tag" id="status-tag"><i></i> Khí huyết sung mãn</span>
         </div>
 
-        <!-- ════════════════════ PAGE: TU LUYỆN (HOME) ════════════════════ -->
+        <!-- ════════════════════ PAGE 1: TU LUYỆN (HOME) ════════════════════ -->
         <section id="page-home" class="page">
           <div class="home-top">
             <article class="cultivation panel" style="width: 100%;">
@@ -231,7 +217,7 @@
           <article class="panel" style="margin-top: 14px;">
             <div class="panel-heading">
               <h3>Bảng Thuộc Tính Nhân Vật</h3>
-              <small class="muted">Tự động tăng khi đột phá & cường hóa</small>
+              <small class="muted">Tự động tăng khi đột phá, nâng skill & cường hóa</small>
             </div>
             <div class="stats-grid">
               <div class="stat-box">
@@ -300,7 +286,33 @@
           </article>
         </section>
 
-        <!-- ════════════════════ PAGE: CHIẾN ĐẤU (COMBAT) ════════════════════ -->
+        <!-- ════════════════════ PAGE 2: KỸ NĂNG & CÔNG PHÁP (SKILLS) ════════════════════ -->
+        <section id="page-skills" class="page" hidden>
+          <!-- 4 Ô Kỹ Năng Xuất Chiêu -->
+          <div class="skill-slots-banner">
+            <div class="skill-slots-title">
+              <div>
+                <h3 style="margin: 0; color: #ffe6a3;">⚔️ 4 Ô Kỹ Năng Ra Chiêu (Active Slots)</h3>
+                <small class="muted">Các chiêu thức này sẽ được tự động/chủ động tung ra trong trận chiến</small>
+              </div>
+            </div>
+            <div class="skill-slots-grid" id="active-slots-grid"></div>
+          </div>
+
+          <!-- Bộ lọc Cảnh Giới Kỹ Năng -->
+          <div class="skill-category-tabs" id="skill-cat-tabs">
+            <button class="skill-cat-btn active" data-skill-cat="all">Tất cả chiêu thức</button>
+            <button class="skill-cat-btn" data-skill-cat="0">Luyện Khí</button>
+            <button class="skill-cat-btn" data-skill-cat="1">Trúc Cơ</button>
+            <button class="skill-cat-btn" data-skill-cat="2">Kim Đan</button>
+            <button class="skill-cat-btn" data-skill-cat="3">Nguyên Anh</button>
+          </div>
+
+          <!-- Danh sách Kỹ Năng -->
+          <div class="skill-grid" id="skill-grid"></div>
+        </section>
+
+        <!-- ════════════════════ PAGE 3: CHIẾN ĐẤU (COMBAT) ════════════════════ -->
         <section id="page-combat" class="page" hidden>
           <!-- Sub-tabs chuyển chế độ chiến đấu -->
           <div class="sub-tabs">
@@ -362,7 +374,7 @@
           </div>
         </section>
 
-        <!-- ════════════════════ PAGE: TÚI ĐỒ & TRANG BỊ ════════════════════ -->
+        <!-- ════════════════════ PAGE 4: TÚI ĐỒ & TRANG BỊ (BAG) ════════════════════ -->
         <section id="page-bag" class="page" hidden>
           <div class="toolbar">
             <div class="filters" id="bag-filters">
@@ -372,41 +384,25 @@
               ><button data-filter="duoc_lieu">Linh thảo</button
               ><button data-filter="other">Vật liệu</button>
             </div>
-            <button class="btn outline" data-command="/cuahang">
-              Ghé phường thị ↗
-            </button>
           </div>
           <div class="character-vitals" id="vitals"></div>
           <div id="inventory" class="inventory-grid"></div>
         </section>
 
-        <!-- ════════════════════ PAGE: ĐAN PHÒNG ════════════════════ -->
+        <!-- ════════════════════ PAGE 5: ĐAN PHÒNG & LUYỆN KHÍ (CRAFT) ════════════════════ -->
         <section id="page-craft" class="page" hidden>
-          <article class="feature-landscape craft-landscape panel">
-            <span class="eyebrow">ĐAN HỎA BẤT TỨC</span>
-            <h2>Một lò lửa.<br />Vạn vật hóa linh.</h2>
-            <p>Luyện dược thảo thành tiên đan tăng tu vi, rèn quặng quý thành thần binh hộ thể.</p>
-            <button class="btn gold" data-command="/luyendan">
-              Mở lò luyện đan <svg><use href="#i-fire" /></svg>
+          <div class="craft-tabs">
+            <button class="craft-tab-btn active" data-craft-tab="dan">
+              <svg style="width:16px;height:16px;"><use href="#i-fire" /></svg> Luyện Tiên Đan
             </button>
-          </article>
-          <div class="quick-actions">
-            <button data-command="/luyenkhi">
-              <span class="action-icon amber"><svg><use href="#i-sword" /></svg></span>
-              <strong>Luyện khí rèn đồ</strong>
-            </button>
-            <button data-command="/sotay">
-              <span class="action-icon jade"><svg><use href="#i-scroll" /></svg></span>
-              <strong>Xem công thức</strong>
-            </button>
-            <button data-page="bag">
-              <span class="action-icon blue"><svg><use href="#i-bag" /></svg></span>
-              <strong>Kho nguyên liệu</strong>
+            <button class="craft-tab-btn" data-craft-tab="khi">
+              <svg style="width:16px;height:16px;"><use href="#i-sword" /></svg> Luyện Thần Binh
             </button>
           </div>
+          <div class="recipe-grid" id="craft-grid"></div>
         </section>
 
-        <!-- ════════════════════ PAGE: VẠN VẬT PHỔ ════════════════════ -->
+        <!-- ════════════════════ PAGE 6: VẠN VẬT PHỔ (CODEX) ════════════════════ -->
         <section id="page-codex" class="page" hidden>
           <div class="toolbar">
             <p class="muted">Bách khoa vật phẩm tu chân giới · Tra cứu công dụng & thuộc tính</p>
@@ -432,15 +428,16 @@
     <nav class="mobile-nav" aria-label="Điều hướng điện thoại">
       <button class="active" data-page="home">
         <svg><use href="#i-lotus" /></svg>Tu Luyện</button
+      ><button data-page="skills">
+        <svg><use href="#i-star" /></svg>Kỹ Năng</button
       ><button data-page="combat">
         <svg><use href="#i-sword" /></svg>Chiến Đấu</button
       ><button data-page="bag">
         <svg><use href="#i-bag" /></svg>Túi Đồ</button
       ><button data-page="craft">
         <svg><use href="#i-fire" /></svg>Đan Phòng</button
-      ><button id="mobile-more">
-        <svg><use href="#i-scroll" /></svg>Thêm
-      </button>
+      ><button data-page="codex">
+        <svg><use href="#i-scroll" /></svg>Vật Phổ</button>
     </nav>
 
     <!-- ════════════════════ DIALOG: CHIẾN ĐẤU TRỰC QUAN (BATTLE ARENA) ════════════════════ -->
@@ -480,21 +477,20 @@
       <!-- Khung diễn biến từng hiệp đấu -->
       <div class="battle-log-scroll" id="battle-log-scroll"></div>
 
-      <!-- Các nút ra chiêu -->
-      <div class="battle-action-grid" id="battle-action-grid">
-        <button class="btn" id="b-act-atk">⚔️ Đánh Thường</button>
-        <button class="btn" id="b-act-skill1">⚡ Kiếm Khí Trảm (20 MP)</button>
-        <button class="btn" id="b-act-skill2">🔥 Liệt Diễm Chưởng (35 MP)</button>
-        <button class="btn" id="b-act-skill3">🛡️ Kim Cương Khiên (25 MP)</button>
-        <button class="btn" id="b-act-heal">💊 Uống Đan Trị Thương</button>
-        <button class="btn gold" id="b-act-auto">⚡ Đấu Tự Động / Kết Thúc</button>
+      <!-- Thanh chọn chiêu thức khi chiến đấu -->
+      <div class="battle-skills-header">
+        <span>Chọn kỹ năng thi triển:</span>
+        <span id="battle-round-counter">Hiệp 1</span>
+      </div>
+      <div class="battle-action-grid" id="battle-skills-actions">
+        <!-- Dynamic active skill buttons -->
       </div>
 
-      <!-- Bảng kết thúc trận chiến (ẩn khi đang đánh) -->
+      <!-- Bảng kết thúc trận chiến -->
       <div class="battle-result-overlay" id="battle-result-overlay" hidden>
         <div class="battle-result-title" id="battle-result-title">CHIẾN THẮNG!</div>
         <div class="battle-loot-list" id="battle-loot-list"></div>
-        <button class="btn gold wide" id="battle-btn-close">Tiếp Tục Tu Luyện</button>
+        <button class="btn gold wide" id="battle-btn-close">Tiếp Tục</button>
       </div>
     </dialog>
 
@@ -563,51 +559,6 @@
         </button>
       </form>
       <small class="muted" id="register-mode"></small>
-    </dialog>
-
-    <!-- ════════════════════ DIALOG: THÊM ════════════════════ -->
-    <dialog id="more-dialog">
-      <button class="dialog-close icon-btn" data-close aria-label="Đóng">
-        ×
-      </button>
-      <h2>Thiên cơ các</h2>
-      <div class="more-links">
-        <button data-page="craft">Đan phòng</button
-        ><button data-page="codex">Vạn vật phổ</button
-        ><button data-command="/nv">Xem bảng chỉ số</button
-        ><button data-command="/nhatky">Nhật ký tu hành</button
-        ><button data-command="/chidan">Chỉ dẫn nhập môn</button>
-      </div>
-    </dialog>
-
-    <!-- ════════════════════ DIALOG: NHẬT KÝ HÀNH ĐỘNG ════════════════════ -->
-    <dialog id="journal-dialog" class="journal-dialog">
-      <div class="journal-heading">
-        <div>
-          <span class="eyebrow">TỪNG BƯỚC TIÊN ĐỒ</span>
-          <h2>Nhật Ký Hành Động & Lệnh</h2>
-        </div>
-        <button class="icon-btn" data-close aria-label="Đóng nhật ký">
-          <svg><use href="#i-close" /></svg>
-        </button>
-      </div>
-      <div id="chat" aria-live="polite">
-        <div class="chat-empty">
-          <svg><use href="#i-scroll" /></svg>
-          <p>Mọi hành động và lệnh tu tiên sẽ được ghi lại tại đây.</p>
-        </div>
-      </div>
-      <form id="command-form">
-        <input
-          id="inp"
-          placeholder="Nhập lệnh (/menu, /nv, /sanquai, /thap)…"
-          aria-label="Lệnh hoặc lời đáp"
-          maxlength="500"
-          autocomplete="off"
-        /><button class="btn gold" id="btn" aria-label="Gửi">
-          <svg><use href="#i-arrow" /></svg>
-        </button>
-      </form>
     </dialog>
 
     <div id="bao" role="status" hidden></div>

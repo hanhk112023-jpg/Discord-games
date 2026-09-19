@@ -223,6 +223,54 @@ class ActionApiTests(unittest.IsolatedAsyncioTestCase):
         data_unequip = await res_unequip.json()
         self.assertTrue(data_unequip.get("ok"))
 
+    async def test_skill_learn_upgrade_equip(self):
+        uid = mini.doc_pien(next(iter(self.client.session.cookie_jar)).value)
+        ts = await self.kho.lay_tu_si(uid)
+        ts.tu_vi += 2000
+        ts.linh_thach += 1000
+        await self.kho.luu(ts)
+
+        # Lĩnh ngộ Liệt Diễm Chưởng
+        res = await self.client.post("/api/action/hoc-ky-nang", json={"ma": "liet_diem_chuong"})
+        self.assertEqual(res.status, 200)
+        data = await res.json()
+        self.assertTrue(data.get("ok"))
+
+        # Nâng cấp Liệt Diễm Chưởng
+        res_up = await self.client.post("/api/action/nang-cap-ky-nang", json={"ma": "liet_diem_chuong"})
+        self.assertEqual(res_up.status, 200)
+        data_up = await res_up.json()
+        self.assertEqual(data_up.get("cap_moi"), 2)
+
+        # Kiểm tra trang bị kỹ năng vào ô 2
+        res_eq = await self.client.post("/api/action/trang-bi-ky-nang", json={"ma": "liet_diem_chuong", "slot": 1})
+        self.assertEqual(res_eq.status, 200)
+
+        # Tháo kỹ năng khỏi ô 1
+        res_thao = await self.client.post("/api/action/thao-ky-nang", json={"slot": 0})
+        self.assertEqual(res_thao.status, 200)
+
+    async def test_direct_alchemy_and_forging(self):
+        uid = mini.doc_pien(next(iter(self.client.session.cookie_jar)).value)
+        # Cấp dược liệu để luyện Hồi Khí Đan
+        await self.kho.them_vat(uid, "hoang_tinh_thao", 5)
+        await self.kho.them_vat(uid, "thanh_lan_hoa", 3)
+
+        res_dan = await self.client.post("/api/action/luyen-dan", json={"ma": "ct_hoi_khi"})
+        self.assertEqual(res_dan.status, 200)
+        data_dan = await res_dan.json()
+        self.assertTrue(data_dan.get("ok"))
+        self.assertGreater(await self.kho.dem_vat(uid, "hoi_khi_dan"), 0)
+
+        # Cấp khoáng thạch để rèn Thanh Cương Kiếm
+        await self.kho.them_vat(uid, "hac_thiet", 5)
+
+        res_khi = await self.client.post("/api/action/luyen-khi", json={"ma": "kp_thanh_cuong"})
+        self.assertEqual(res_khi.status, 200)
+        data_khi = await res_khi.json()
+        self.assertTrue(data_khi.get("ok"))
+        self.assertGreater(await self.kho.dem_vat(uid, "thanh_cuong_kiem"), 0)
+
 
 class TelegramCommandsTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):

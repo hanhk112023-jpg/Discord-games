@@ -1,4 +1,4 @@
-/* Telegram Mini App: Lối chơi Tu Tiên Chiến Đấu & Tu Luyện Đạo Hạnh */
+/* Telegram Mini App: Lối chơi Tu Tiên Chiến Đấu, Kỹ Năng & Đan Phòng Trực Quan */
 (() => {
   "use strict";
   const $ = (s, root = document) => root.querySelector(s);
@@ -29,21 +29,21 @@
   };
   const pages = {
     home: ["Tu Luyện", "Ngưng tụ linh khí, rèn luyện thân thể, đột phá cảnh giới."],
+    skills: ["Kỹ Năng", "Lĩnh ngộ bí thuật công pháp, thiết lập 4 ô kỹ năng xuất chiêu."],
     combat: ["Chiến Đấu", "Sơn dã săn quái cày đồ, vượt Trấn Yêu Tháp, đại chiến Yêu Vương."],
     bag: ["Túi & Trang Bị", "Cất giữ thần trang, đan dược và kỳ bảo tu chân."],
-    craft: ["Đan Phòng", "Luyện tinh hoa đất trời thành tiên đan và thần binh."],
+    craft: ["Đan Phòng", "Mở lò luyện đan, rèn đúc thần binh bằng nguyên liệu thu thập."],
     codex: ["Vạn Vật Phổ", "Bách khoa toàn thư về thần dược và pháp bảo cổ đại."],
-    boss: ["Ải Yêu Vương", "Vào bí cảnh, thử sức bảy bóng yêu vương cổ đại."],
-    explore: ["Du Ngoạn", "Bản đồ giang hồ và những chuyến hành trình kỳ bí."],
   };
 
   let state = null,
     page = "home",
     combatTab = "hunt",
+    skillCat = "all",
+    craftTab = "dan",
     selectedZone = "thanh_khe_son",
     selectedStage = null,
-    filter = "all",
-    cursor = 0;
+    filter = "all";
   let busy = false,
     ready = false,
     polling = false,
@@ -54,16 +54,14 @@
     if (localStorage.getItem("tien-motion") === "off") motion = false;
   } catch (_) {}
 
-  // Trạng thái phiên đấu hiện tại (nếu mở trận đấu trực quan)
-  let currentBattle = null;
-
   function toast(text) {
-    $("#bao").textContent = text;
-    $("#bao").hidden = false;
+    const el = $("#bao");
+    el.textContent = text;
+    el.hidden = false;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
-      $("#bao").hidden = true;
-    }, 4200);
+      el.hidden = true;
+    }, 4000);
   }
 
   function haptic(type = "light") {
@@ -142,7 +140,6 @@
   });
 
   function navigate(next) {
-    // Ánh xạ tương thích ngược cho boss / explore
     if (next === "boss") {
       next = "combat";
       combatTab = "boss";
@@ -164,8 +161,10 @@
     $("#page-crumb").textContent = pages[next][0];
     $("#page-subtitle").textContent = pages[next][1];
 
+    if (next === "skills") renderSkills();
     if (next === "combat") renderCombat();
     if (next === "bag") renderBag();
+    if (next === "craft") renderCraft();
     if (next === "codex") renderCodex();
 
     window.scrollTo({ top: 0, behavior: motion ? "smooth" : "instant" });
@@ -202,17 +201,12 @@
       return data;
     } catch (e) {
       if (e.name === "AbortError")
-        throw new Error(
-          "Kết nối chậm. Kiểm tra lại tín hiệu trước khi thao tác.",
-        );
+        throw new Error("Kết nối quá thời gian chờ.");
       throw e;
     } finally {
       clearTimeout(timer);
     }
   }
-
-  const command = (text) => api("/gui", { text });
-  const callback = (nut, msg = null) => api("/nut", { nut, msg });
 
   async function syncState() {
     const next = await api("/api/state");
@@ -224,73 +218,10 @@
     }
   }
 
-  function renderMessage(t) {
-    const chat = $("#chat");
-    $(".chat-empty", chat)?.remove();
-    let bubble = $(`.bong[data-id="${Number(t.id)}"]`, chat);
-    if (!bubble) {
-      bubble = document.createElement("div");
-      bubble.className = "bong";
-      bubble.dataset.id = t.id;
-      chat.append(bubble);
-    }
-    bubble.replaceChildren();
-    if (t.anh) {
-      const img = document.createElement("img");
-      img.src = "/tranh/" + t.anh.split("/").map(encodeURIComponent).join("/");
-      img.alt = "Minh họa";
-      img.loading = "lazy";
-      bubble.append(img);
-    }
-    const txt = document.createElement("div");
-    txt.innerHTML = t.html || "";
-    bubble.append(txt);
-
-    $(`.hangnut[data-for="${Number(t.id)}"]`, chat)?.remove();
-    if (t.nut?.length) {
-      const group = document.createElement("div");
-      group.className = "hangnut";
-      group.dataset.for = t.id;
-      t.nut.forEach((row) => {
-        const line = document.createElement("div");
-        line.className = "day";
-        row.forEach((n) => {
-          const button = document.createElement("button");
-          button.textContent = n.l;
-          button.onclick = async () => {
-            if (String(n.u).startsWith("url:")) {
-              const url = String(n.u).slice(4);
-              if (!/^https:\/\//i.test(url)) return;
-              if (tg?.initData) tg.openLink(url);
-              else window.open(url, "_blank", "noopener,noreferrer");
-              return;
-            }
-            await perform(() => callback(n.u, t.id), button);
-          };
-          line.append(button);
-        });
-        group.append(line);
-      });
-      bubble.after(group);
-    }
-    chat.scrollTop = chat.scrollHeight;
-  }
-
-  async function syncMessages() {
-    const data = await api("/keo?since=" + cursor);
-    if (data.moc < cursor) {
-      cursor = 0;
-      return;
-    }
-    (data.tin || []).forEach(renderMessage);
-    cursor = data.moc || cursor;
-    if (data.bao) toast(data.bao);
-  }
-
   async function perform(fn, button, fx) {
     if (busy) return;
     if (!ready) {
-      toast("Chưa kết nối được với cửa động. Hãy tải lại trang.");
+      toast("Đang đồng bộ với máy chủ, hãy thử lại.");
       return;
     }
     busy = true;
@@ -387,7 +318,6 @@
       }
     }
 
-    // Danh sách xuất thân trong dialog
     if (!$("#origin").options.length && state?.xuat_than) {
       $("#origin").innerHTML = state.xuat_than
         .map((x) => `<option value="${esc(x.ma)}">${esc(x.ten)}</option>`)
@@ -395,8 +325,10 @@
       originChange();
     }
 
+    if (page === "skills") renderSkills();
     if (page === "combat") renderCombat();
     if (page === "bag") renderBag();
+    if (page === "craft") renderCraft();
     if (page === "codex") renderCodex();
   }
 
@@ -446,7 +378,6 @@
     await perform(async () => {
       const res = await api("/api/action/tu-luyen", {});
       if (res.ok) {
-        const lastMsg = res.van ? res.van.slice(-2).join("<br>") : "";
         toast("Tọa thiền hấp thu linh khí thành công!");
         effect("cultivate");
       } else {
@@ -498,7 +429,6 @@
       toast("Tu vi chưa đầy tràn! Hãy tiếp tục tọa thiền tụ khí hoặc săn quái cày tu vi.");
       return;
     }
-    // Mở popup đột phá
     const pills = state.tui.filter((v) => v.loai === "dan_duoc" && v.hieu_qua?.dot_pha);
     const select = $("#bt-pill-select");
     select.innerHTML = '<option value="">(Không dùng đan hộ trợ)</option>' +
@@ -523,11 +453,256 @@
     }, e.currentTarget);
   };
 
+  /* ════════════════════ TAB: KỸ NĂNG & CÔNG PHÁP ════════════════════ */
+
+  function renderSkills() {
+    if (!state) return;
+    const allSkills = state.ky_nang || [];
+    const equippedCodes = state.nhan_vat?.ky_nang_trang_bi || [];
+
+    // Render 4 ô kỹ năng xuất chiêu
+    const slotsGrid = $("#active-slots-grid");
+    let slotsHtml = "";
+    for (let i = 0; i < 4; i++) {
+      const skillCode = equippedCodes[i];
+      const kn = allSkills.find((k) => k.ma === skillCode);
+      if (kn) {
+        slotsHtml += `
+          <div class="active-slot-card has-skill">
+            <span class="active-slot-num">Ô ${i + 1}</span>
+            <span class="active-slot-icon">${kn.icon}</span>
+            <span class="active-slot-name">${esc(kn.ten)}</span>
+            <span class="active-slot-mp">MP: ${kn.mp} · Lv.${kn.cap}</span>
+            <button class="active-slot-unequip" onclick="thaoKyNang(${i})">Tháo ra</button>
+          </div>
+        `;
+      } else {
+        slotsHtml += `
+          <div class="active-slot-card">
+            <span class="active-slot-num">Ô ${i + 1}</span>
+            <span class="active-slot-icon" style="opacity: 0.3;">➕</span>
+            <span class="active-slot-name muted">(Trống)</span>
+            <span class="active-slot-mp muted">—</span>
+          </div>
+        `;
+      }
+    }
+    slotsGrid.innerHTML = slotsHtml;
+
+    // Filter tabs
+    $$(".skill-cat-btn").forEach((b) =>
+      b.classList.toggle("active", b.dataset.skillCat === String(skillCat)),
+    );
+
+    const filtered = allSkills.filter(
+      (k) => skillCat === "all" || String(k.canh_gioi) === String(skillCat),
+    );
+
+    const grid = $("#skill-grid");
+    grid.innerHTML = filtered
+      .map((k) => {
+        const heClass = `he-${k.he.toLowerCase()}`;
+        const isEquipped = k.da_trang_bi;
+        let actionBtn = "";
+
+        if (!k.da_hoc) {
+          const disabled = !k.co_the_hoc ? "disabled" : "";
+          actionBtn = `<button class="btn gold" onclick="hocKyNang('${k.ma}')" ${disabled}>Lĩnh Ngộ (${k.gia_hoc_tv} Tu vi, ${k.gia_hoc_lt} LT)</button>`;
+        } else {
+          const upDisabled = !k.co_the_up ? "disabled" : "";
+          const equipBtn = isEquipped
+            ? `<button class="btn outline" style="border-color:var(--gold); color:var(--gold);" disabled>✓ Đang Ra Chiêu</button>`
+            : `<button class="btn green" onclick="trangBiKyNang('${k.ma}')">Trang Bị</button>`;
+          actionBtn = `
+            ${equipBtn}
+            <button class="btn outline" onclick="nangCapKyNang('${k.ma}')" ${upDisabled}>Nâng Cấp (${k.gia_up_tv} TV, ${k.gia_up_lt} LT)</button>
+          `;
+        }
+
+        return `
+          <div class="skill-card ${isEquipped ? "equipped" : ""}">
+            <div class="skill-card-head">
+              <div class="skill-card-icon">${k.icon}</div>
+              <div class="skill-card-meta">
+                <div class="skill-card-name">${esc(k.ten)}</div>
+                <div class="skill-badge-row">
+                  <span class="element-badge ${heClass}">${esc(k.he)}</span>
+                  <span class="skill-realm-tag" style="font-size:10px; color:var(--muted);">${esc(k.canh_gioi_ten)}</span>
+                  ${k.da_hoc ? `<span class="skill-level-tag">Cấp ${k.cap}</span>` : ""}
+                </div>
+              </div>
+            </div>
+
+            <div class="skill-stats-box">
+              <div class="skill-stat-item">
+                <span>Tiêu hao Chân Khí (MP):</span>
+                <strong>${k.mp} MP</strong>
+              </div>
+              ${k.he_so_sat_thuong > 0 ? `
+              <div class="skill-stat-item">
+                <span>Sát thương uy lực:</span>
+                <strong style="color:#ef5350;">x${k.he_so_sat_thuong} Công + ${k.sat_thuong_co_dinh}</strong>
+              </div>` : ""}
+              ${k.he_so_hoi_phuc > 0 ? `
+              <div class="skill-stat-item">
+                <span>Hồi phục sinh mệnh:</span>
+                <strong style="color:#81c784;">+${Math.round(k.he_so_hoi_phuc * 100)}% Khí Huyết</strong>
+              </div>` : ""}
+              ${k.he_so_la_chan > 0 ? `
+              <div class="skill-stat-item">
+                <span>Hộ thể kim quang:</span>
+                <strong style="color:#ffd54f;">Giảm ${Math.round(k.he_so_la_chan * 100)}% sát thương</strong>
+              </div>` : ""}
+              ${k.tang_bao_kich > 0 ? `
+              <div class="skill-stat-item">
+                <span>Tỷ lệ bạo kích thêm:</span>
+                <strong style="color:#ba68c8;">+${k.tang_bao_kich}% Bạo</strong>
+              </div>` : ""}
+              <div class="skill-stat-item">
+                <span>Thời gian hồi chiêu:</span>
+                <strong>${k.hoi_chieu} hiệp</strong>
+              </div>
+            </div>
+
+            <p class="skill-desc">${esc(k.mo_ta)}</p>
+            <div class="skill-actions-row">${actionBtn}</div>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  $$(".skill-cat-btn").forEach((b) => {
+    b.onclick = () => {
+      skillCat = b.dataset.skillCat;
+      renderSkills();
+    };
+  });
+
+  window.hocKyNang = async (ma) => {
+    await perform(async () => {
+      const res = await api("/api/action/hoc-ky-nang", { ma });
+      if (res.ok) {
+        toast(res.thong_bao);
+        effect("cultivate");
+      }
+    });
+  };
+
+  window.nangCapKyNang = async (ma) => {
+    await perform(async () => {
+      const res = await api("/api/action/nang-cap-ky-nang", { ma });
+      if (res.ok) {
+        toast(res.thong_bao);
+        effect("cultivate");
+      }
+    });
+  };
+
+  window.trangBiKyNang = async (ma) => {
+    const equipped = state.nhan_vat?.ky_nang_trang_bi || [];
+    let freeSlot = equipped.length < 4 ? equipped.length : 0;
+    await perform(async () => {
+      const res = await api("/api/action/trang-bi-ky-nang", { ma, slot: freeSlot });
+      if (res.ok) {
+        toast(res.thong_bao);
+        effect("cultivate");
+      }
+    });
+  };
+
+  window.thaoKyNang = async (slot) => {
+    await perform(async () => {
+      const res = await api("/api/action/thao-ky-nang", { slot });
+      if (res.ok) {
+        toast(res.thong_bao);
+      }
+    });
+  };
+
+  /* ════════════════════ TAB: ĐAN PHÒNG & LUYỆN KHÍ ════════════════════ */
+
+  function renderCraft() {
+    if (!state) return;
+    const allRecipes = state.cong_thuc || [];
+
+    $$(".craft-tab-btn").forEach((b) =>
+      b.classList.toggle("active", b.dataset.craftTab === craftTab),
+    );
+
+    const recipes = allRecipes.filter((r) => r.loai === craftTab);
+    const grid = $("#craft-grid");
+
+    grid.innerHTML = recipes
+      .map((r) => {
+        const ingredientsHtml = r.nguyen_lieu
+          .map(
+            (nl) => `
+            <div class="ingredient-item ${nl.du ? "enough" : "missing"}">
+              <span>${esc(nl.ten)}:</span>
+              <span class="ingredient-count">${nl.co} / ${nl.can} ${nl.du ? "✓" : "✗"}</span>
+            </div>
+          `,
+          )
+          .join("");
+
+        const btnLabel =
+          craftTab === "dan"
+            ? (r.du_nguyen_lieu ? "🔥 Luyện 1 Viên" : "Thiếu Dược Liệu")
+            : (r.du_nguyen_lieu ? "⚒️ Rèn Bảo Vật" : "Thiếu Khoáng Thạch");
+
+        const actionFn = craftTab === "dan" ? `luyenDan('${r.ma}')` : `luyenKhi('${r.ma}')`;
+        const disabled = !r.co_the_luyen ? "disabled" : "";
+
+        return `
+          <div class="recipe-card ${r.co_the_luyen ? "can-craft" : ""}">
+            <div class="recipe-head">
+              <div class="recipe-art"><img src="${esc(r.thanh_pham.anh)}" alt="${esc(r.thanh_pham.ten)}" loading="lazy"></div>
+              <div class="recipe-meta">
+                <div class="recipe-title">${esc(r.ten)}</div>
+                <div class="recipe-target">Thành phẩm: <strong>${esc(r.thanh_pham.ten)}</strong></div>
+                <div class="recipe-realm">Yêu cầu: Cảnh giới cấp ${r.canh_gioi_toi_thieu}</div>
+              </div>
+            </div>
+            <div class="ingredient-list">${ingredientsHtml}</div>
+            <button class="btn ${r.du_nguyen_lieu ? "gold" : "outline"} craft-btn" onclick="${actionFn}" ${disabled}>${btnLabel}</button>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  $$(".craft-tab-btn").forEach((b) => {
+    b.onclick = () => {
+      craftTab = b.dataset.craftTab;
+      renderCraft();
+    };
+  });
+
+  window.luyenDan = async (ma) => {
+    await perform(async () => {
+      const res = await api("/api/action/luyen-dan", { ma });
+      if (res.ok) {
+        toast(res.thong_bao);
+        effect("cultivate");
+      }
+    });
+  };
+
+  window.luyenKhi = async (ma) => {
+    await perform(async () => {
+      const res = await api("/api/action/luyen-khi", { ma });
+      if (res.ok) {
+        toast(res.thong_bao);
+        effect("battle");
+      }
+    });
+  };
+
   /* ════════════════════ CHIẾN ĐẤU & SĂN QUÁI ════════════════════ */
 
   function renderCombat() {
     if (!state) return;
-    // Đồng bộ sub-tab
     $$(".sub-tab-btn").forEach((b) =>
       b.classList.toggle("active", b.dataset.combatTab === combatTab),
     );
@@ -551,7 +726,6 @@
     const zones = state.khu_vuc_san || [];
     if (!zones.length) return;
 
-    // Selector khu vực
     $("#zone-selector").innerHTML = zones
       .map(
         (z) =>
@@ -650,7 +824,40 @@
     $("#battle-e-name").textContent = ten_doi_thu;
     $("#battle-e-realm").textContent = res.tieu_de || "Yêu Thú";
     $("#battle-e-hp-text").textContent = res.thang ? "0 HP (Bại)" : "HP Còn";
-    $("#battle-e-hp-bar").style.width = res.thang ? "0%" : "40%";
+    $("#battle-e-hp-bar").style.width = res.thang ? "0%" : "35%";
+
+    // Render các nút kỹ năng trong bảng đấu
+    const skillContainer = $("#battle-skills-actions");
+    const allSkills = state.ky_nang || [];
+    const equippedCodes = state.nhan_vat?.ky_nang_trang_bi || [];
+
+    let skillButtonsHtml = `
+      <button class="btn battle-skill-btn" onclick="fastForwardBattle()">
+        <span class="battle-skill-btn-title">⚔️ Đánh Thường</span>
+        <span class="battle-skill-btn-sub">0 MP</span>
+      </button>
+    `;
+
+    equippedCodes.forEach((code) => {
+      const kn = allSkills.find((k) => k.ma === code);
+      if (kn) {
+        skillButtonsHtml += `
+          <button class="btn battle-skill-btn" onclick="fastForwardBattle()">
+            <span class="battle-skill-btn-title">${kn.icon} ${esc(kn.ten)}</span>
+            <span class="battle-skill-btn-sub">${kn.mp} MP · Lv.${kn.cap}</span>
+          </button>
+        `;
+      }
+    });
+
+    skillButtonsHtml += `
+      <button class="btn gold battle-skill-btn" onclick="fastForwardBattle()">
+        <span class="battle-skill-btn-title">⚡ Đấu Tự Động</span>
+        <span class="battle-skill-btn-sub">Tua nhanh</span>
+      </button>
+    `;
+
+    skillContainer.innerHTML = skillButtonsHtml;
 
     const logBox = $("#battle-log-scroll");
     logBox.innerHTML = "";
@@ -668,12 +875,18 @@
           showOverlay(res.thang);
         }
       }, delay);
-      delay += motion ? 250 : 20;
+      delay += motion ? 220 : 20;
     });
 
     $("#battle-result-overlay").hidden = true;
     openDialog("#battle-dialog");
   }
+
+  window.fastForwardBattle = () => {
+    $$(".battle-log-line").forEach((el) => (el.style.display = "block"));
+    $("#battle-log-scroll").scrollTop = $("#battle-log-scroll").scrollHeight;
+    $("#battle-result-overlay").hidden = false;
+  };
 
   function showOverlay(thang) {
     const overlay = $("#battle-result-overlay");
@@ -682,16 +895,9 @@
     title.textContent = thang ? "🏆 CHIẾN THẮNG!" : "💀 BẠI TRẬN!";
     $("#battle-loot-list").innerHTML = thang
       ? "<span>Chiến lợi phẩm và tu vi đã chuyển vào túi càn khôn.</span>"
-      : "<span>Hãy điều tức trị thương và cường hóa trang bị để tiếp tục khiêu chiến!</span>";
+      : "<span>Hãy điều tức trị thương, học thêm kỹ năng và cường hóa trang bị!</span>";
     overlay.hidden = false;
   }
-
-  $("#b-act-auto").onclick = () => {
-    // Tua nhanh toàn bộ log
-    $$(".battle-log-line").forEach((el) => (el.style.display = "block"));
-    $("#battle-log-scroll").scrollTop = $("#battle-log-scroll").scrollHeight;
-    $("#battle-result-overlay").hidden = false;
-  };
 
   $("#battle-btn-close").onclick = () => {
     $("#battle-dialog").close();
@@ -734,8 +940,8 @@
     const cap = v.cap ? ` (+${v.cap})` : "";
 
     let statsHtml = "";
-    if (v.cong) statsHtml += `<span style="color:#e63946;">+${v.cong} Công kích</span> · `;
-    if (v.thu) statsHtml += `<span style="color:#457b9d;">+${v.thu} Phòng ngự</span> · `;
+    if (v.cong) statsHtml += `<span style="color:#e63946;">+${v.cong} Công</span> · `;
+    if (v.thu) statsHtml += `<span style="color:#457b9d;">+${v.thu} Thủ</span> · `;
     if (v.hp) statsHtml += `<span style="color:#2a9d8f;">+${v.hp} Máu</span> · `;
     if (v.bao_kich) statsHtml += `<span style="color:#e9c46a;">+${v.bao_kich}% Bạo</span>`;
 
@@ -751,7 +957,6 @@
         ${owned && v.slot ? (isEquipped ? `<button class="btn outline" onclick="unequipSlot('${v.slot}')">Tháo Trang Bị</button>` : `<button class="btn gold" onclick="equipItem('${esc(ma)}')">Trang Bị Lên Người</button>`) : ""}
         ${owned && v.slot ? `<button class="btn green" onclick="enhanceItem('${esc(ma)}')">Cường Hóa (+1)</button>` : ""}
         ${owned && v.loai === "dan_duoc" ? `<button class="btn gold" onclick="usePill('${esc(ma)}')">Uống Đan</button>` : ""}
-        ${owned && v.gia > 1 ? `<button class="btn outline" data-callback="bd:ban:${esc(ma)}">Bán lấy ${v.gia} Linh thạch</button>` : ""}
       </div>
     `;
     openDialog("#item-dialog");
@@ -828,8 +1033,18 @@
             ? `Hồi kiếm khí · ${cooldown}s`
             : "Khiêu chiến Yêu Vương";
     $("#stage-detail").innerHTML =
-      `<div class="stage-visual"><img src="${a.anh}" alt="${esc(a.ten)}"><span class="stage-label">ẢI YÊU VƯƠNG · ${String(a.so).padStart(2, "0")}</span></div><div class="stage-body"><span class="eyebrow">${esc(a.hieu)}</span><h2>${esc(a.ten)}</h2><p class="muted">Yêu cầu: ${esc(a.canh_gioi)}</p><p class="stage-description">${esc(a.mo_ta)}</p><div class="reward-mini"><img src="/tranh/vatpham/vat_lieu.svg" alt="Linh thạch"><span>${a.linh_thach} linh thạch</span><img src="${a.thuong.anh}" alt="${esc(a.thuong.ten)}"><span>${esc(a.thuong.ten)} ×1</span></div><button class="btn gold wide" data-command="/bicanh ${a.ma}" data-effect="battle" ${disabled ? "disabled" : ""}>${icon("sword")}${caption}</button><p class="stage-note">Ải cá nhân thử sức · Hạ gục nhận thần trang quý</p></div>`;
+      `<div class="stage-visual"><img src="${a.anh}" alt="${esc(a.ten)}"><span class="stage-label">ẢI YÊU VƯƠNG · ${String(a.so).padStart(2, "0")}</span></div><div class="stage-body"><span class="eyebrow">${esc(a.hieu)}</span><h2>${esc(a.ten)}</h2><p class="muted">Yêu cầu: ${esc(a.canh_gioi)}</p><p class="stage-description">${esc(a.mo_ta)}</p><div class="reward-mini"><img src="/tranh/vatpham/vat_lieu.svg" alt="Linh thạch"><span>${a.linh_thach} linh thạch</span><img src="${a.thuong.anh}" alt="${esc(a.thuong.ten)}"><span>${esc(a.thuong.ten)} ×1</span></div><button class="btn gold wide" onclick="fightBoss('${a.ma}')" ${disabled ? "disabled" : ""}>${icon("sword")}${caption}</button><p class="stage-note">Ải cá nhân thử sức · Hạ gục nhận thần trang quý</p></div>`;
   }
+
+  window.fightBoss = async (ma) => {
+    if (!state?.nhan_vat) return register();
+    await perform(async () => {
+      const res = await api("/api/action/san-quai", { ma_quai: ma });
+      if (res.ok) {
+        showBattleResults(res, "Ải Yêu Vương");
+      }
+    });
+  };
 
   function renderCodex() {
     if (!state) return;
@@ -851,12 +1066,10 @@
   $("#origin").onchange = originChange;
   $("#item-search").oninput = renderCodex;
 
-  $("#profile-open").onclick = (e) => {
+  $("#profile-open").onclick = () => {
     if (!state?.nhan_vat) register();
     else navigate("home");
   };
-  $("#journal-open").onclick = () => openDialog("#journal-dialog");
-  $("#mobile-more").onclick = () => openDialog("#more-dialog");
 
   document.addEventListener("click", (e) => {
     const b = e.target.closest("button");
@@ -867,18 +1080,7 @@
       selectedZone = b.dataset.zone;
       renderHuntingView();
     } else if (b.hasAttribute("data-register")) register();
-    else if (b.dataset.command) {
-      perform(async () => {
-        await command(b.dataset.command);
-        await syncMessages();
-        openDialog("#journal-dialog");
-      }, b, b.dataset.effect);
-    } else if (b.dataset.callback) {
-      perform(async () => {
-        await callback(b.dataset.callback);
-        await syncMessages();
-      }, b);
-    } else if (b.dataset.stage) {
+    else if (b.dataset.stage) {
       selectedStage = b.dataset.stage;
       renderBoss();
     } else if (b.dataset.item && state) {
@@ -905,10 +1107,9 @@
     const b = $('button[type="submit"]', e.target);
     b.disabled = true;
     try {
-      await command("/dangky " + name);
-      await callback("xt:" + form.get("origin"));
-      await callback("gt:" + form.get("gender"));
-      await syncMessages();
+      await api("/gui", { text: "/dangky " + name });
+      await api("/nut", { nut: "xt:" + form.get("origin") });
+      await api("/nut", { nut: "gt:" + form.get("gender") });
       await syncState();
       if (!state.nhan_vat)
         throw new Error("Chưa hoàn tất nhập đạo. Hãy thử lại.");
@@ -923,22 +1124,10 @@
     }
   };
 
-  $("#command-form").onsubmit = async (e) => {
-    e.preventDefault();
-    const value = $("#inp").value.trim();
-    if (!value || busy) return;
-    await perform(async () => {
-      await command(value);
-      $("#inp").value = "";
-      await syncMessages();
-    }, $("#btn"));
-  };
-
   async function poll() {
     if (ready && !busy && !polling && !document.hidden) {
       polling = true;
       try {
-        await syncMessages();
         await syncState();
         $("#connection").innerHTML =
           `<i></i> ${tg?.initData ? "Telegram đã kết nối" : "Chế độ trải nghiệm"}`;
@@ -960,7 +1149,6 @@
         ? "Tiến độ được lưu theo tài khoản Telegram của ngươi."
         : "Đang trải nghiệm ngoài Telegram. Tiến độ gắn với cookie trình duyệt.";
       await syncState();
-      await syncMessages();
       ready = true;
       poll();
     } catch (e) {

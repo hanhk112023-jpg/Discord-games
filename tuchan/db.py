@@ -254,6 +254,39 @@ class TuSi:
         g["thap_tang"] = tang
         self.dat_ghi(g)
 
+    def lay_ky_nang(self) -> dict[str, int]:
+        g = self.ghi()
+        kn = g.get("ky_nang")
+        if kn is None:
+            kn = {"kiem_khi_tram": 1, "kim_cuong_ho_the": 1}
+            g["ky_nang"] = kn
+            self.dat_ghi(g)
+        return dict(kn)
+
+    def dat_ky_nang(self, ma: str, cap: int) -> None:
+        g = self.ghi()
+        kn = dict(self.lay_ky_nang())
+        kn[ma] = max(1, cap)
+        g["ky_nang"] = kn
+        self.dat_ghi(g)
+
+    def lay_ky_nang_trang_bi(self) -> list[str]:
+        g = self.ghi()
+        tb = g.get("ky_nang_trang_bi")
+        if tb is None:
+            da_hoc = list(self.lay_ky_nang().keys())
+            tb = da_hoc[:4]
+            g["ky_nang_trang_bi"] = tb
+            self.dat_ghi(g)
+        return list(tb)
+
+    def dat_ky_nang_trang_bi(self, danh_sach: list[str]) -> None:
+        g = self.ghi()
+        da_hoc = self.lay_ky_nang()
+        hop_le = [m for m in danh_sach if m in da_hoc][:4]
+        g["ky_nang_trang_bi"] = hop_le
+        self.dat_ghi(g)
+
     def tinh_chi_so(self) -> dict[str, Any]:
         from .canhgioi import tu_vi_can_thiet
         from .data import vatpham, monphai
@@ -286,6 +319,8 @@ class TuSi:
 
         hp_hien_tai = int(hp_max * (max(1, min(100, self.than_the)) / 100.0))
         luc_chien = int(cong * 3.5 + thu * 3.0 + hp_max * 0.4 + mp_max * 0.5 + bao_kich * 25 + toc_do * 2.0)
+        kn_map = self.lay_ky_nang()
+        luc_chien += sum(cap * 60 for cap in kn_map.values())
         tu_vi_can = tu_vi_can_thiet(cg, tang)
         tu_vi_sec = max(1, int(1.6 ** cg + tang * 0.6))
         if mp:

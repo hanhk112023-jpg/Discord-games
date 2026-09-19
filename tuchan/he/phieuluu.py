@@ -22,6 +22,16 @@ from .thienco import roi_do, van_khi
 def ben_tu_nguoi_choi(ts) -> chiendau.BenThamChien:
     mp = dl_monphai.lay(ts.mon_phai) if ts.mon_phai else None
     cs = ts.tinh_chi_so()
+    from ..data.kynang import lay_ky_nang
+    kn_trang_bi = ts.lay_ky_nang_trang_bi()
+    danh_sach_kn = []
+    for ma_kn in kn_trang_bi:
+        kn_obj = lay_ky_nang(ma_kn)
+        if kn_obj:
+            danh_sach_kn.append(kn_obj.ten)
+    if not danh_sach_kn:
+        danh_sach_kn = ["Kiếm Khí Trảm", "Kim Cương Hộ Thể"]
+
     return chiendau.BenThamChien(
         ten=ts.ten,
         canh_gioi=ts.canh_gioi,
@@ -42,6 +52,7 @@ def ben_tu_nguoi_choi(ts) -> chiendau.BenThamChien:
         thu=cs["thu"],
         bao_kich=cs["bao_kich"],
         toc_do=cs["toc_do"],
+        ky_nang=danh_sach_kn,
     )
 
 

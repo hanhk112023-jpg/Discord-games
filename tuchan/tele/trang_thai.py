@@ -1,7 +1,7 @@
 """Dữ liệu trình bày của Mini App — đầy đủ chỉ số RPG, trang bị, khu vực săn quái và trấn yêu tháp."""
 
 from ..canhgioi import ten_canh_gioi, tu_vi_can_thiet
-from ..data import monphai, vatpham, xuatthan
+from ..data import congthuc, kynang, monphai, vatpham, xuatthan
 from ..he import bicanh, sanquai
 
 
@@ -98,7 +98,121 @@ async def lay(kho, uid):
             con_duong_thuong=ts.con_bao_lau_duong_thuong,
             da_chet=bool(ts.da_chet),
             da_qua=qua,
+            ky_nang_da_hoc=ts.lay_ky_nang(),
+            ky_nang_trang_bi=ts.lay_ky_nang_trang_bi(),
         )
+
+    # Hệ thống Kỹ Năng & Công Pháp
+    ky_nang_da_hoc = ts.lay_ky_nang() if ts else {}
+    ky_nang_trang_bi = ts.lay_ky_nang_trang_bi() if ts else []
+
+    ky_nang_list = []
+    for kn in kynang.DANH_SACH_KY_NANG.values():
+        da_hoc = kn.ma in ky_nang_da_hoc
+        cap = ky_nang_da_hoc.get(kn.ma, 0)
+        da_trang_bi = kn.ma in ky_nang_trang_bi
+        slot_idx = ky_nang_trang_bi.index(kn.ma) if da_trang_bi else -1
+        mult = round(kn.he_so_sat_thuong * (1.0 + 0.15 * max(0, cap - 1)), 2)
+        st_cd = int(kn.sat_thuong_co_dinh * (1.0 + 0.2 * max(0, cap - 1)))
+        gia_up_tv = int(kn.gia_tu_vi * (1.5 ** max(0, cap)))
+        gia_up_lt = int(kn.gia_linh_thach * (1.5 ** max(0, cap)))
+        ky_nang_list.append(dict(
+            ma=kn.ma,
+            ten=kn.ten,
+            he=kn.he,
+            icon=kn.icon,
+            loai=kn.loai,
+            canh_gioi=kn.canh_gioi,
+            canh_gioi_ten=kn.canh_gioi_ten,
+            mp=kn.mp,
+            he_so_sat_thuong=mult,
+            sat_thuong_co_dinh=st_cd,
+            he_so_hoi_phuc=kn.he_so_hoi_phuc,
+            he_so_la_chan=kn.he_so_la_chan,
+            tang_bao_kich=kn.tang_bao_kich,
+            hoi_chieu=kn.hoi_chieu,
+            mo_ta=kn.mo_ta,
+            da_hoc=da_hoc,
+            cap=cap,
+            da_trang_bi=da_trang_bi,
+            slot=slot_idx,
+            gia_hoc_tv=kn.gia_tu_vi,
+            gia_hoc_lt=kn.gia_linh_thach,
+            gia_up_tv=gia_up_tv,
+            gia_up_lt=gia_up_lt,
+            co_the_hoc=(ts is not None and ts.canh_gioi >= kn.canh_gioi and not da_hoc and ts.tu_vi >= kn.gia_tu_vi and ts.linh_thach >= kn.gia_linh_thach),
+            co_the_up=(ts is not None and da_hoc and ts.tu_vi >= gia_up_tv and ts.linh_thach >= gia_up_lt),
+        ))
+
+    # Hệ thống Công thức Đan Phòng & Luyện Khí
+    cong_thuc_list = []
+    for ct in congthuc.DAN_PHUONG.values():
+        nl_info = []
+        du_nguyen_lieu = True
+        for m_nl, sl_can in ct.nguyen_lieu.items():
+            vp_nl = vatpham.lay(m_nl)
+            co = tui.get(m_nl, 0)
+            if co < sl_can:
+                du_nguyen_lieu = False
+            nl_info.append(dict(
+                ma=m_nl,
+                ten=vp_nl.ten if vp_nl else m_nl,
+                can=sl_can,
+                co=co,
+                du=co >= sl_can,
+            ))
+        vp_tp = vatpham.lay(ct.thanh_pham)
+        cong_thuc_list.append(dict(
+            ma=ct.ma,
+            ten=ct.ten,
+            loai="dan",
+            nguyen_lieu=nl_info,
+            thanh_pham=dict(
+                ma=ct.thanh_pham,
+                ten=vp_tp.ten if vp_tp else ct.thanh_pham,
+                pham=vp_tp.pham if vp_tp else 1,
+                loai=vp_tp.loai if vp_tp else "dan_duoc",
+                anh=f"/tranh/{vp_tp.tranh}" if vp_tp and vp_tp.tranh else "/tranh/vatpham/dan_duoc.svg",
+            ),
+            canh_gioi_toi_thieu=ct.canh_gioi_toi_thieu,
+            mo_ta=ct.mo_ta,
+            du_nguyen_lieu=du_nguyen_lieu,
+            co_the_luyen=(ts is not None and ts.canh_gioi >= ct.canh_gioi_toi_thieu and du_nguyen_lieu),
+        ))
+
+    for ct in congthuc.KHI_PHUONG.values():
+        nl_info = []
+        du_nguyen_lieu = True
+        for m_nl, sl_can in ct.nguyen_lieu.items():
+            vp_nl = vatpham.lay(m_nl)
+            co = tui.get(m_nl, 0)
+            if co < sl_can:
+                du_nguyen_lieu = False
+            nl_info.append(dict(
+                ma=m_nl,
+                ten=vp_nl.ten if vp_nl else m_nl,
+                can=sl_can,
+                co=co,
+                du=co >= sl_can,
+            ))
+        vp_tp = vatpham.lay(ct.thanh_pham)
+        cong_thuc_list.append(dict(
+            ma=ct.ma,
+            ten=ct.ten,
+            loai="khi",
+            nguyen_lieu=nl_info,
+            thanh_pham=dict(
+                ma=ct.thanh_pham,
+                ten=vp_tp.ten if vp_tp else ct.thanh_pham,
+                pham=vp_tp.pham if vp_tp else 1,
+                loai=vp_tp.loai if vp_tp else "phap_bao",
+                anh=f"/tranh/{vp_tp.tranh}" if vp_tp and vp_tp.tranh else "/tranh/vatpham/phap_bao.svg",
+            ),
+            canh_gioi_toi_thieu=ct.canh_gioi_toi_thieu,
+            mo_ta=ct.mo_ta,
+            du_nguyen_lieu=du_nguyen_lieu,
+            co_the_luyen=(ts is not None and ts.canh_gioi >= ct.canh_gioi_toi_thieu and du_nguyen_lieu),
+        ))
 
     # Khu vực săn quái
     khu_vuc_san = []
@@ -151,6 +265,8 @@ async def lay(kho, uid):
         ai=ais,
         khu_vuc_san=khu_vuc_san,
         tran_thap=tran_thap_info,
+        ky_nang=ky_nang_list,
+        cong_thuc=cong_thuc_list,
         xuat_than=[dict(ma=x.ma, ten=x.ten, mo_ta=x.mo_ta, linh_can=x.linh_can)
                    for x in xuatthan.DANH_SACH.values()],
         cho={k: await kho.con_cho(uid, k) if ts else 0

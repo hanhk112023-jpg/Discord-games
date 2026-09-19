@@ -38,9 +38,9 @@ DANH_SACH_QUAI: dict[str, QuaiVat] = {
     # ── Khu 1: Thanh Khê Sơn (Luyện Khí sơ kỳ) ──
     "tho_ngoc": QuaiVat(
         ma="tho_ngoc", ten="Ngọc Thố Tinh", khu_vuc="thanh_khe_son",
-        canh_gioi=0, tang=2, hp=360, cong=45, thu=18, bao_kich=6.0, toc_do=52,
-        exp=80, linh_thach=25, mo_ta="Thỏ rừng hấp thu linh khí, di chuyển mau lẹ.",
-        roi_do=[("hoang_tinh_thao", 0.45), ("linh_thach_ha", 0.50)],
+        canh_gioi=0, tang=1, hp=180, cong=25, thu=10, bao_kich=4.0, toc_do=45,
+        exp=80, linh_thach=30, mo_ta="Thỏ rừng hấp thu linh khí, di chuyển mau lẹ.",
+        roi_do=[("hoang_tinh_thao", 0.60), ("linh_thach_ha", 0.60)],
         ky_nang=["Phổ Thông Tấn Công", "Thố Tinh Cước"],
     ),
     "xich_mao_lang": QuaiVat(

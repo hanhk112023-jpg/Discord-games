@@ -109,30 +109,56 @@ class TranDau:
 
 KY_NANG_INFO: dict[str, dict] = {
     "Phổ Thông Tấn Công": {"mult": 1.0, "mp": 0, "mo_ta": "tung đòn tấn công cơ bản"},
-    "Kiếm Khí Trảm": {"mult": 1.75, "mp": 20, "mo_ta": "chém ra kiếm khí xé gió"},
-    "Liệt Diễm Chưởng": {"mult": 2.15, "mp": 35, "mo_ta": "vận chân hoả giáng chưởng thiêu đốt"},
-    "Vạn Kiếm Quy Tông": {"mult": 2.6, "mp": 50, "mo_ta": "ngưng kiếm quang rền vang giáng xuống"},
-    "Kim Cương Hộ Thể": {"mult": 0.85, "mp": 25, "mo_ta": "kích hoạt hộ thể kim quang"},
     "Móng Vuốt Xé Rách": {"mult": 1.35, "mp": 0, "mo_ta": "vung vuốt sắc xé rách"},
+    "Thố Tinh Cước": {"mult": 1.4, "mp": 0, "mo_ta": "thỏ tinh cước ảnh"},
+    "Lang Nha Cuồng Giảo": {"mult": 1.5, "mp": 0, "mo_ta": "nanh sói cuồng cắn"},
+    "Trấn Tháp Thần Quyền": {"mult": 1.8, "mp": 0, "mo_ta": "thần quyền trấn áp"},
+    "Lôi Điện Ba Động": {"mult": 1.6, "mp": 0, "mo_ta": "ba động sấm sét"},
 }
 
+try:
+    from ..data.kynang import DANH_SACH_KY_NANG
+    for kn in DANH_SACH_KY_NANG.values():
+        KY_NANG_INFO[kn.ten] = {
+            "mult": kn.he_so_sat_thuong,
+            "mp": kn.mp,
+            "mo_ta": kn.mo_ta,
+            "hoi_phuc": kn.he_so_hoi_phuc,
+            "la_chan": kn.he_so_la_chan,
+            "tang_bao_kich": kn.tang_bao_kich,
+        }
+except Exception:
+    pass
 
-def _chon_chieu(b: BenThamChien, rng: random.Random) -> tuple[str, float]:
+
+def _chon_chieu(b: BenThamChien, rng: random.Random) -> tuple[str, float, dict]:
     kn = b.ky_nang or ["Phổ Thông Tấn Công"]
-    if b.mp >= 50 and "Vạn Kiếm Quy Tông" in kn and rng.random() < 0.45:
-        b.mp -= 50
-        return "Vạn Kiếm Quy Tông", 2.6
-    if b.mp >= 35 and "Liệt Diễm Chưởng" in kn and rng.random() < 0.55:
-        b.mp -= 35
-        return "Liệt Diễm Chưởng", 2.15
-    if b.mp >= 20 and "Kiếm Khí Trảm" in kn and rng.random() < 0.65:
-        b.mp -= 20
-        return "Kiếm Khí Trảm", 1.75
-    # Nếu có chiêu thủ đoạn của quái
-    ds = [k for k in kn if k not in ("Vạn Kiếm Quy Tông", "Liệt Diễm Chưởng", "Kiếm Khí Trảm")]
-    chieu = rng.choice(ds) if ds else "Phổ Thông Tấn Công"
-    mult = KY_NANG_INFO.get(chieu, {}).get("mult", 1.25)
-    return chieu, mult
+    
+    # Ưu tiên hồi máu nếu máu dưới 50% và có chiêu hồi máu
+    if b.hp < b.hp_max * 0.5:
+        for k in kn:
+            info = KY_NANG_INFO.get(k, {})
+            if info.get("hoi_phuc", 0) > 0 and b.mp >= info.get("mp", 0):
+                b.mp -= info["mp"]
+                return k, info.get("mult", 0.0), info
+
+    # Lọc các chiêu có thể dùng (đủ MP)
+    co_the_dung = []
+    for k in kn:
+        info = KY_NANG_INFO.get(k, {})
+        cost = info.get("mp", 0)
+        if b.mp >= cost and k != "Phổ Thông Tấn Công":
+            co_the_dung.append(k)
+
+    if co_the_dung and rng.random() < 0.75:
+        # Chọn chiêu có uy lực cao
+        chieu = rng.choice(co_the_dung)
+        info = KY_NANG_INFO.get(chieu, {})
+        b.mp -= info.get("mp", 0)
+        return chieu, info.get("mult", 1.5), info
+
+    # Đánh thường
+    return "Phổ Thông Tấn Công", 1.0, KY_NANG_INFO.get("Phổ Thông Tấn Công", {})
 
 
 def giao_dau(
@@ -154,45 +180,80 @@ def giao_dau(
     hiep_dau: list[dict] = []
     hiep = 0
 
+    tien_shield = 0.0
+    hau_shield = 0.0
+
     while hiep < max_hiep and a.hp > 0 and b.hp > 0:
         hiep += 1
         # Quyết định thứ tự xuất chiêu dựa trên tốc độ
         tien, hau = (a, b) if (a.toc_do + rng.randint(-5, 5)) >= (b.toc_do + rng.randint(-5, 5)) else (b, a)
 
-        # Đòn đánh của người đi trước
-        chieu_1, mult_1 = _chon_chieu(tien, rng)
-        raw_1 = tien.cong * mult_1
-        dmg_1 = max(12, int((raw_1 - hau.thu * 0.52) * rng.uniform(0.9, 1.15)))
-        crit_1 = rng.random() < (tien.bao_kich / 100.0)
-        if crit_1:
-            dmg_1 = int(dmg_1 * 1.75)
-        hau.hp = max(0, hau.hp - dmg_1)
+        # Đòn của người đi trước
+        chieu_1, mult_1, info_1 = _chon_chieu(tien, rng)
+        if info_1.get("la_chan", 0) > 0:
+            tien_shield = info_1["la_chan"]
+        if info_1.get("hoi_phuc", 0) > 0:
+            hoi_1 = int(tien.hp_max * info_1["hoi_phuc"])
+            tien.hp = min(tien.hp_max, tien.hp + hoi_1)
+            van.append(f"🌿 [Hiệp {hiep}] **{tien.ten}** thi triển 【{chieu_1}】 hồi phục **+{hoi_1}** Khí Huyết! ({tien.ten} HP: {tien.hp}/{tien.hp_max})")
+            hiep_dau.append({
+                "hiep": hiep, "nguoi_danh": tien.ten, "chieu": chieu_1,
+                "sat_thuong": 0, "hoi_phuc": hoi_1, "bao_kich": False, "hp_a": a.hp, "hp_b": b.hp
+            })
+        else:
+            raw_1 = tien.cong * mult_1
+            bk_bonus = info_1.get("tang_bao_kich", 0.0)
+            dmg_1 = max(12, int((raw_1 - hau.thu * 0.52) * rng.uniform(0.9, 1.15)))
+            if hau_shield > 0:
+                dmg_1 = max(6, int(dmg_1 * (1.0 - hau_shield)))
+                hau_shield = 0.0
+            crit_1 = rng.random() < ((tien.bao_kich + bk_bonus) / 100.0)
+            if crit_1:
+                dmg_1 = int(dmg_1 * 1.75)
+            hau.hp = max(0, hau.hp - dmg_1)
 
-        crit_str_1 = " 💥 (BẠO KÍCH!)" if crit_1 else ""
-        van.append(f"⚡ [Hiệp {hiep}] **{tien.ten}** xuất chiêu 【{chieu_1}】{crit_str_1} gây **{dmg_1}** sát thương! ({hau.ten} HP: {hau.hp}/{hau.hp_max})")
-        hiep_dau.append({
-            "hiep": hiep, "nguoi_danh": tien.ten, "chieu": chieu_1,
-            "sat_thuong": dmg_1, "bao_kich": crit_1, "hp_a": a.hp, "hp_b": b.hp
-        })
+            crit_str_1 = " 💥 (BẠO KÍCH!)" if crit_1 else ""
+            prefix = "🛡️" if info_1.get("la_chan", 0) > 0 else "⚡"
+            van.append(f"{prefix} [Hiệp {hiep}] **{tien.ten}** xuất chiêu 【{chieu_1}】{crit_str_1} gây **{dmg_1}** sát thương! ({hau.ten} HP: {hau.hp}/{hau.hp_max})")
+            hiep_dau.append({
+                "hiep": hiep, "nguoi_danh": tien.ten, "chieu": chieu_1,
+                "sat_thuong": dmg_1, "hoi_phuc": 0, "bao_kich": crit_1, "hp_a": a.hp, "hp_b": b.hp
+            })
 
         if hau.hp <= 0:
             break
 
         # Đòn phản công của người đi sau
-        chieu_2, mult_2 = _chon_chieu(hau, rng)
-        raw_2 = hau.cong * mult_2
-        dmg_2 = max(12, int((raw_2 - tien.thu * 0.52) * rng.uniform(0.9, 1.15)))
-        crit_2 = rng.random() < (hau.bao_kich / 100.0)
-        if crit_2:
-            dmg_2 = int(dmg_2 * 1.75)
-        tien.hp = max(0, tien.hp - dmg_2)
+        chieu_2, mult_2, info_2 = _chon_chieu(hau, rng)
+        if info_2.get("la_chan", 0) > 0:
+            hau_shield = info_2["la_chan"]
+        if info_2.get("hoi_phuc", 0) > 0:
+            hoi_2 = int(hau.hp_max * info_2["hoi_phuc"])
+            hau.hp = min(hau.hp_max, hau.hp + hoi_2)
+            van.append(f"🌿 [Hiệp {hiep}] **{hau.ten}** thi triển 【{chieu_2}】 hồi phục **+{hoi_2}** Khí Huyết! ({hau.ten} HP: {hau.hp}/{hau.hp_max})")
+            hiep_dau.append({
+                "hiep": hiep, "nguoi_danh": hau.ten, "chieu": chieu_2,
+                "sat_thuong": 0, "hoi_phuc": hoi_2, "bao_kich": False, "hp_a": a.hp, "hp_b": b.hp
+            })
+        else:
+            raw_2 = hau.cong * mult_2
+            bk_bonus = info_2.get("tang_bao_kich", 0.0)
+            dmg_2 = max(12, int((raw_2 - tien.thu * 0.52) * rng.uniform(0.9, 1.15)))
+            if tien_shield > 0:
+                dmg_2 = max(6, int(dmg_2 * (1.0 - tien_shield)))
+                tien_shield = 0.0
+            crit_2 = rng.random() < ((hau.bao_kich + bk_bonus) / 100.0)
+            if crit_2:
+                dmg_2 = int(dmg_2 * 1.75)
+            tien.hp = max(0, tien.hp - dmg_2)
 
-        crit_str_2 = " 💥 (BẠO KÍCH!)" if crit_2 else ""
-        van.append(f"🗡️ [Hiệp {hiep}] **{hau.ten}** phản kích 【{chieu_2}】{crit_str_2} gây **{dmg_2}** sát thương! ({tien.ten} HP: {tien.hp}/{tien.hp_max})")
-        hiep_dau.append({
-            "hiep": hiep, "nguoi_danh": hau.ten, "chieu": chieu_2,
-            "sat_thuong": dmg_2, "bao_kich": crit_2, "hp_a": a.hp, "hp_b": b.hp
-        })
+            crit_str_2 = " 💥 (BẠO KÍCH!)" if crit_2 else ""
+            prefix = "🛡️" if info_2.get("la_chan", 0) > 0 else "🗡️"
+            van.append(f"{prefix} [Hiệp {hiep}] **{hau.ten}** phản kích 【{chieu_2}】{crit_str_2} gây **{dmg_2}** sát thương! ({tien.ten} HP: {tien.hp}/{tien.hp_max})")
+            hiep_dau.append({
+                "hiep": hiep, "nguoi_danh": hau.ten, "chieu": chieu_2,
+                "sat_thuong": dmg_2, "hoi_phuc": 0, "bao_kich": crit_2, "hp_a": a.hp, "hp_b": b.hp
+            })
 
     # Xác định người thắng
     if a.hp > 0 and b.hp <= 0:
